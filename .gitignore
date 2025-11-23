@@ -1,0 +1,60 @@
+# Datasets grandes
+*.csv
+!example.csv
+!*_small.csv
+estatisticas_por_*.csv
+matriz_predicoes_*.csv
+
+# Modelos treinados grandes  
+*.pkl
+*.h5
+*.hdf5
+*.joblib
+*.cbm
+
+# Arquivos JSON/TXT grandes de modelos
+xgboost_model_*.json
+lightgbm_model_*.txt
+catboost_model_*
+model_config_*.json
+selected_features_*.txt
+
+# Diretórios de dados COMPLETOS
+models/OFICIAL-20251112T122637Z-1-001/
+**/sptrans/
+**/*.ipynb
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs e arquivos temporários
+*.log
+*.tmp
+catboost_info/
+
+# Environment files
+.env
+.env.local

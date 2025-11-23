@@ -1,0 +1,44 @@
+======================================================================
+RELATÓRIO V3 ENHANCED - BALANCEAMENTO DE CLASSES
+======================================================================
+
+ESTRATÉGIAS TESTADAS:
+----------------------------------------------------------------------
+
+1. Baseline (scale_pos_weight)
+   Train Size: 132,751
+   Classe 0: 122,579 | Classe 1: 10,172
+   ROC-AUC: 0.9324
+   F1-Score: 0.4264
+   F1-Macro: 0.6951
+
+2. SMOTE (oversample minority)
+   Train Size: 159,352
+   Classe 0: 122,579 | Classe 1: 36,773
+   ROC-AUC: 0.9283
+   F1-Score: 0.3790
+   F1-Macro: 0.6798
+
+3. Tomek Links (undersample)
+   Train Size: 129,511
+   Classe 0: 119,339 | Classe 1: 10,172
+   ROC-AUC: 0.9320
+   F1-Score: 0.4246
+   F1-Macro: 0.6941
+
+4. SMOTETomek (hybrid)
+   Train Size: 155,670
+   Classe 0: 120,738 | Classe 1: 34,932
+   ROC-AUC: 0.9288
+   F1-Score: 0.3592
+   F1-Macro: 0.6699
+
+======================================================================
+MELHOR ESTRATÉGIA: Baseline (scale_pos_weight)
+======================================================================
+F1-Macro: 0.7143
+ROC-AUC: 0.9324
+F1-Score: 0.4523
+Precision: 0.4341
+Recall: 0.4720
+Threshold: 0.65
