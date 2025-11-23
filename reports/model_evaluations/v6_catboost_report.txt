@@ -1,0 +1,40 @@
+======================================================================
+MODELO V6 - CATBOOST - RELATÓRIO FINAL
+======================================================================
+
+ROC-AUC:      0.9789
+Accuracy:     0.9632
+Precision:    0.5140
+Recall:       0.7460
+F1-Score:     0.6087
+F1-Macro:     0.7947
+Threshold:    0.4
+Best Iteration: 333
+
+Matriz de Confusão:
+TN: 41,272 | FP: 1,194
+FN: 430 | TP: 1,263
+
+Top 20 Features:
+  conversion_interaction: 10.08
+  user_pseudo_id: 6.66
+  minute: 3.39
+  Unnamed: 0: 2.76
+  user_total_conversions: 2.50
+  day_sin: 2.39
+  user_conversion_rate: 2.28
+  day_of_month_sin: 2.28
+  day_of_month_cos: 2.11
+  gtfs_stop_id: 1.98
+  time_day_of_month: 1.95
+  day_cos: 1.93
+  stop_conversion_rate: 1.85
+  dist_device_stop: 1.79
+  user_frequency: 1.78
+  hour_sin: 1.77
+  day: 1.76
+  dist_ratio: 1.75
+  dayofweek: 1.74
+  hour_cos: 1.73
+
+Features categóricas tratadas: 1

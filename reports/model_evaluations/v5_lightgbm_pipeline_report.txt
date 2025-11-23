@@ -1,0 +1,39 @@
+======================================================================
+MODELO V5 - LIGHTGBM COM PIPELINE (SEM VAZAMENTO DE DADOS)
+======================================================================
+
+ABORDAGEM:
+- Pipeline com transformadores customizados
+- Agregações calculadas APENAS no conjunto de treino
+- Estatísticas aprendidas aplicadas ao teste
+- Elimina completamente o vazamento de dados
+
+MÉTRICAS FINAIS:
+ROC-AUC:      0.7446
+Accuracy:     0.9357
+Precision:    0.2863
+Recall:       0.4372
+F1-Score:     0.3460
+F1-Macro:     0.6561
+Threshold:    0.3
+
+MATRIZ DE CONFUSÃO:
+True Negatives:  42,428
+False Positives: 1,959
+False Negatives: 1,012
+True Positives:  786
+
+TOP 10 FEATURES MAIS IMPORTANTES:
+user_conversion_rate          : 2426472.15
+stop_event_rate               : 365309.68
+user_total_conversions        : 331964.36
+stop_event_count              : 106421.58
+conversion_interaction        : 35331.77
+user_total_events             : 30123.65
+user_stop_affinity            : 8383.06
+stop_total_samples            : 6563.13
+stop_event_count_agg          : 6189.76
+stop_user_freq_median         : 5792.87
+
+Melhor iteração: 26
+Total de features: 59

@@ -1,0 +1,58 @@
+================================================================================
+MODELO V6 FINAL - CATBOOST (CONFIGURAÇÃO OTIMIZADA)
+================================================================================
+
+CONFIGURAÇÃO OTIMIZADA (baseada em experimentos):
+==================================================
+learning_rate:     0.1 (otimizado! +0.23% vs baseline)
+depth:             10 (reduzido para compensar LR alto)
+iterations:        50
+auto_class_weights: Balanced
+l2_leaf_reg:       1.0
+subsample:         0.85
+rsm:               0.85
+
+MÉTRICAS FINAIS:
+==============================
+ROC-AUC:      0.9807
+Accuracy:     0.9683
+Precision:    0.5771
+Recall:       0.6474
+F1-Score:     0.6102
+F1-Macro:     0.7969
+Threshold:    0.8
+Best Iteration: 47
+
+Matriz de Confusão:
+TN: 41,663 | FP: 803
+FN: 597 | TP: 1,096
+
+Top 25 Features:
+  conversion_interaction: 27.13
+  user_pseudo_id: 12.59
+  user_total_conversions: 6.79
+  user_conversion_rate: 4.99
+  stop_conversion_rate: 4.09
+  user_frequency: 3.87
+  user_total_events: 2.42
+  stop_total_samples: 1.72
+  dist_device_stop: 1.71
+  day_cos: 1.46
+  user_stop_affinity: 1.44
+  hour_cos: 1.40
+  hour_sin: 1.39
+  stop_lon_event: 1.32
+  stop_user_freq_median: 1.23
+  stop_dist_mean: 1.21
+  user_avg_dist: 1.17
+  dist_x_peak: 1.16
+  device_lon: 1.15
+  hour: 1.13
+  gtfs_stop_id: 0.95
+  user_std_dist: 0.92
+  dayofweek: 0.91
+  user_avg_hour: 0.89
+  headway_x_hour: 0.77
+
+Features categóricas tratadas: 1
+Features totais: 61

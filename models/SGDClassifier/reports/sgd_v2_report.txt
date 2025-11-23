@@ -1,0 +1,102 @@
+================================================================================
+SGD CLASSIFIER V2 - FEATURE SELECTION REPORT
+================================================================================
+
+ESTRATÉGIA
+--------------------------------------------------------------------------------
+1. Treinar modelo baseline com todas as features
+2. Analisar coeficientes absolutos do modelo linear
+3. Remover features com |coeficiente| < threshold
+4. Retreinar e comparar performance
+
+BASELINE (V1)
+--------------------------------------------------------------------------------
+Features:          48
+ROC-AUC:           0.7800
+F1-Macro:          0.6622
+Accuracy:          0.8628
+Tempo Treino:      0.19s
+
+MODELO FINAL (V2)
+--------------------------------------------------------------------------------
+Features:          20 (removidas: 28)
+Threshold:         0.10
+ROC-AUC:           0.7917 (+0.0117)
+F1-Macro:          0.6729 (+0.0108)
+Accuracy:          0.8667
+Precision:         0.3709
+Recall:            0.4873
+F1-Score:          0.4212
+Threshold Pred:    0.70
+
+MATRIZ DE CONFUSÃO
+--------------------------------------------------------------------------------
+True Negatives:    10,032
+False Positives:   1,009
+False Negatives:   626
+True Positives:    595
+
+FEATURES SELECIONADAS (TOP 30)
+--------------------------------------------------------------------------------
+stop_event_rate                          | Coef: +1.207534
+stop_event_count                         | Coef: -0.554892
+stop_total_samples                       | Coef: +0.283677
+hour                                     | Coef: +0.235755
+time_hour                                | Coef: +0.174892
+is_weekend                               | Coef: +0.156735
+stop_lat_event                           | Coef: +0.138833
+headway_x_weekend                        | Coef: -0.105810
+time_day_of_month                        | Coef: -0.096774
+device_lon                               | Coef: -0.085043
+stop_lon_event                           | Coef: +0.080497
+is_peak_hour                             | Coef: -0.076773
+hour_cos                                 | Coef: +0.073295
+time_month                               | Coef: -0.051579
+device_lat                               | Coef: +0.050292
+headway_x_hour                           | Coef: -0.043475
+stop_recency_days                        | Coef: -0.041591
+stop_dist_mean                           | Coef: +0.023142
+user_recency_days                        | Coef: -0.010990
+time_day_of_week                         | Coef: -0.005468
+
+FEATURES REMOVIDAS
+--------------------------------------------------------------------------------
+- int64_field_0
+- Unnamed: 0
+- dist_device_stop
+- is_holiday
+- headway_avg_stop_hour
+- hour_sin
+- day_sin
+- day_cos
+- dist_x_peak
+- dist_x_weekend
+- stop_dist_std
+- stop_headway_mean
+- stop_headway_std
+- user_frequency
+- day_of_week
+- day_of_month
+- month
+- month_sin
+- month_cos
+- user_hist_conversion_rate
+- stop_hist_conversion_rate
+- line_hist_conversion_rate
+- user_hist_count
+- stop_hist_count
+- line_hist_count
+- user_stop_interaction
+- user_line_interaction
+- stop_line_interaction
+
+COMPARAÇÃO DE THRESHOLDS
+--------------------------------------------------------------------------------
+ Threshold | Features |  ROC-AUC |     Diff |  F1-Macro
+--------------------------------------------------------------------------------
+      0.01 |       39 |   0.7802 |  +0.0002 |    0.6651
+      0.02 |       38 |   0.7879 |  +0.0079 |    0.6660
+      0.03 |       38 |   0.7879 |  +0.0079 |    0.6660
+      0.05 |       30 |   0.7814 |  +0.0014 |    0.6692
+      0.07 |       24 |   0.7898 |  +0.0098 |    0.6773
+      0.10 |       20 |   0.7917 |  +0.0117 |    0.6729

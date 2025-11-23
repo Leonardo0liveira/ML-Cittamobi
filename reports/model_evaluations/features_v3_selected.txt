@@ -1,0 +1,43 @@
+TOP 40 FEATURES SELECIONADAS PARA V3
+==================================================
+
+ 1. event_density                  | Gain: 3273.85
+ 2. stop_event_rate                | Gain: 1369.32
+ 3. event_rate_normalized          | Gain: 375.38
+ 4. stop_event_count               | Gain: 142.40
+ 5. hour_cos                       | Gain: 89.62
+ 6. time_hour                      | Gain: 86.56
+ 7. hour                           | Gain: 79.49
+ 8. is_peak_hour                   | Gain: 76.84
+ 9. dayofweek                      | Gain: 72.77
+10. time_day_of_week               | Gain: 72.23
+11. stop_headway_mean              | Gain: 70.89
+12. hour_sin                       | Gain: 68.35
+13. headway_avg_stop_hour          | Gain: 64.58
+14. week_cos                       | Gain: 64.24
+15. stop_lon_event                 | Gain: 63.64
+16. stop_headway_std               | Gain: 61.57
+17. user_frequency                 | Gain: 59.45
+18. stop_dist_mean                 | Gain: 57.48
+19. gtfs_stop_id                   | Gain: 57.33
+20. day                            | Gain: 56.45
+21. stop_total_samples             | Gain: 56.17
+22. headway_x_hour                 | Gain: 54.99
+23. headway_x_weekend              | Gain: 54.10
+24. day_of_month_sin               | Gain: 53.15
+25. stop_dist_std                  | Gain: 52.58
+26. stop_lat_event                 | Gain: 51.71
+27. int64_field_0                  | Gain: 50.28
+28. minute                         | Gain: 50.27
+29. dist_x_peak                    | Gain: 49.65
+30. device_lat                     | Gain: 48.72
+31. dist_x_weekend                 | Gain: 45.24
+32. user_pseudo_id                 | Gain: 43.08
+33. device_lon                     | Gain: 42.49
+34. is_holiday                     | Gain: 41.66
+35. hour_x_dayofweek               | Gain: 41.57
+36. Unnamed: 0                     | Gain: 41.51
+37. time_day_of_month              | Gain: 41.16
+38. day_cos                        | Gain: 40.93
+39. dist_device_stop               | Gain: 38.91
+40. day_of_month_cos               | Gain: 37.35

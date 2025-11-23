@@ -1,0 +1,71 @@
+================================================================================
+SGD CLASSIFIER - RELATÓRIO DETALHADO (LEAK-FREE)
+================================================================================
+
+CONFIGURAÇÃO FINAL
+--------------------------------------------------------------------------------
+Melhor Config:     HIGH_REGULARIZATION
+Loss Function:     log_loss (logistic regression)
+Penalty:           l2
+Alpha:             0.001
+L1 Ratio:          0.0
+Class Weight:      balanced
+Learning Rate:     optimal
+Max Iterations:    1000
+Early Stopping:    True
+
+MÉTRICAS DE PERFORMANCE
+--------------------------------------------------------------------------------
+ROC-AUC:           0.7963
+Accuracy:          0.8863
+Precision:         0.3923
+Recall:            0.4253
+F1-Score:          0.4081
+F1-Macro:          0.6726
+Threshold:         0.75
+Tempo Treino:      0.20s
+
+MATRIZ DE CONFUSÃO
+--------------------------------------------------------------------------------
+True Negatives:    10,394
+False Positives:   745
+False Negatives:   650
+True Positives:    481
+
+COMPARAÇÃO DE CONFIGURAÇÕES
+--------------------------------------------------------------------------------
+HIGH_REGULARIZATION  | ROC-AUC: 0.7963 | F1-Macro: 0.6726 | Alpha: 0.001
+ELASTIC_NET          | ROC-AUC: 0.7841 | F1-Macro: 0.6446 | Alpha: 0.0001
+L1_PENALTY           | ROC-AUC: 0.7669 | F1-Macro: 0.6604 | Alpha: 0.0001
+LOW_REGULARIZATION   | ROC-AUC: 0.7108 | F1-Macro: 0.5247 | Alpha: 1e-05
+BASELINE             | ROC-AUC: 0.6997 | F1-Macro: 0.5513 | Alpha: 0.0001
+
+TOP 20 FEATURES (COEFICIENTES)
+--------------------------------------------------------------------------------
+stop_event_rate                          | Coef: +1.143173
+stop_event_count                         | Coef: -0.487480
+is_peak_hour                             | Coef: -0.201753
+day_of_week                              | Coef: -0.163586
+time_day_of_week                         | Coef: +0.152031
+headway_x_hour                           | Coef: +0.151508
+hour_cos                                 | Coef: +0.151393
+stop_lon_event                           | Coef: -0.148723
+stop_lat_event                           | Coef: +0.142275
+time_hour                                | Coef: +0.142269
+stop_total_samples                       | Coef: +0.139098
+headway_x_weekend                        | Coef: -0.116230
+stop_dist_mean                           | Coef: -0.116183
+time_day_of_month                        | Coef: +0.115950
+day_cos                                  | Coef: -0.100169
+int64_field_0                            | Coef: -0.098772
+device_lon                               | Coef: -0.090760
+is_weekend                               | Coef: +0.086403
+user_frequency                           | Coef: -0.085427
+user_recency_days                        | Coef: +0.084441
+
+COMPARAÇÃO COM OUTROS MODELOS
+--------------------------------------------------------------------------------
+V5 LightGBM:       86.42% ROC-AUC
+V6 CatBoost:       86.69% ROC-AUC
+K-NN (K=31):       75.42% ROC-AUC
+SGD Classifier:    79.63% ROC-AUC

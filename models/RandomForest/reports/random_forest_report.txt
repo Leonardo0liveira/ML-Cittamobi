@@ -1,0 +1,145 @@
+================================================================================
+RANDOM FOREST CLASSIFIER - LEAK-FREE
+================================================================================
+
+CONFIGURAÇÕES TESTADAS
+--------------------------------------------------------------------------------
+
+BASELINE:
+   n_estimators: 100
+   criterion: gini
+   max_depth: None
+   min_samples_split: 2
+   min_samples_leaf: 1
+   max_features: sqrt
+   random_state: 42
+
+BALANCED:
+   n_estimators: 100
+   criterion: gini
+   max_depth: None
+   min_samples_split: 2
+   min_samples_leaf: 1
+   max_features: sqrt
+   class_weight: balanced
+   random_state: 42
+
+DEPTH_CONTROL:
+   n_estimators: 100
+   criterion: gini
+   max_depth: 20
+   min_samples_split: 50
+   min_samples_leaf: 20
+   max_features: sqrt
+   random_state: 42
+
+LARGE_ENSEMBLE:
+   n_estimators: 300
+   criterion: gini
+   max_depth: None
+   min_samples_split: 2
+   min_samples_leaf: 1
+   max_features: sqrt
+   random_state: 42
+
+OPTIMIZED:
+   n_estimators: 300
+   criterion: gini
+   max_depth: 25
+   min_samples_split: 30
+   min_samples_leaf: 10
+   max_features: sqrt
+   class_weight: balanced
+   random_state: 42
+
+================================================================================
+RESULTADOS COMPARATIVOS
+================================================================================
+Config               | ROC-AUC    | F1-Macro   | Trees    | Avg Depth  | Tempo     
+------------------------------------------------------------------------------------------
+OPTIMIZED            | 0.7961     | 0.6657     | 300      | 23.3       | 4.00      s
+DEPTH_CONTROL        | 0.7944     | 0.5894     | 100      | 19.9       | 1.29      s
+LARGE_ENSEMBLE       | 0.7810     | 0.6010     | 300      | 32.5       | 5.09      s
+BALANCED             | 0.7735     | 0.5150     | 100      | 39.1       | 1.50      s
+BASELINE             | 0.7731     | 0.6035     | 100      | 32.6       | 1.72      s
+
+================================================================================
+MELHOR MODELO: OPTIMIZED
+================================================================================
+ROC-AUC:           0.7961
+Accuracy:          0.8669
+Precision:         0.3503
+Recall:            0.4840
+F1-Score:          0.4064
+F1-Macro:          0.6657
+Tempo:             4.00s
+
+CARACTERÍSTICAS DO ENSEMBLE
+--------------------------------------------------------------------------------
+Número de Árvores:      300
+Profundidade Média:     23.3
+Folhas Médias:          851
+
+MATRIZ DE CONFUSÃO
+--------------------------------------------------------------------------------
+True Negatives:    10,079
+False Positives:   1,037
+False Negatives:   596
+True Positives:    559
+
+TOP 30 FEATURES
+--------------------------------------------------------------------------------
+stop_event_rate                               | 0.116381
+stop_density                                  | 0.108191
+stop_event_count                              | 0.071540
+stop_total_samples                            | 0.059709
+stop_hist_conversion_rate                     | 0.038579
+stop_rate_per_sample                          | 0.033199
+stop_hist_count                               | 0.028143
+device_lat                                    | 0.021742
+Unnamed: 0                                    | 0.021423
+stop_recency_days                             | 0.021297
+user_frequency                                | 0.021092
+int64_field_0                                 | 0.020779
+device_lon                                    | 0.020292
+stop_dist_std                                 | 0.020256
+stop_dist_mean                                | 0.019890
+stop_headway_std                              | 0.019887
+geo_distance                                  | 0.019750
+dist_device_stop                              | 0.019692
+headway_x_hour                                | 0.019510
+stop_headway_mean                             | 0.019478
+stop_lat_event                                | 0.018964
+stop_lon_event                                | 0.018122
+headway_avg_stop_hour                         | 0.017000
+stop_recency_score                            | 0.016423
+hour                                          | 0.015330
+hour_sin                                      | 0.014082
+time_day_of_month                             | 0.013996
+day_of_month                                  | 0.013938
+hour_weekday_interaction                      | 0.013884
+time_hour                                     | 0.013518
+
+================================================================================
+COMPARAÇÃO: DECISION TREE vs RANDOM FOREST
+================================================================================
+Decision Tree (melhor):  0.7466 ROC-AUC
+Random Forest (melhor):  0.7961 ROC-AUC
+Ganho:                   +4.95%
+
+ANÁLISE
+--------------------------------------------------------------------------------
+1. Vantagens do Ensemble:
+   - Reduz overfitting via bagging
+   - Mais robusto a ruído nos dados
+   - Feature importance mais confiável
+
+2. Trade-offs:
+   - Tempo de treinamento: ~4s (vs 0.7s Decision Tree)
+   - Menos interpretável (ensemble vs single tree)
+   - Ganho de performance: +5.0%
+
+3. Recomendação:
+   - Random Forest é superior para produção
+   - Melhor generalização
+   - Trade-off velocidade/performance aceitável

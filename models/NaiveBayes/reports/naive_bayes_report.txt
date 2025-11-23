@@ -1,0 +1,62 @@
+================================================================================
+NAIVE BAYES - COMPARAÇÃO DE VARIANTES
+================================================================================
+
+VARIANTES TESTADAS
+--------------------------------------------------------------------------------
+1. GaussianNB:
+   - Assume distribuição Gaussiana (Normal) para features contínuas
+   - Melhor para features com valores reais
+   - Não requer normalização
+
+2. MultinomialNB:
+   - Projetado para features de contagem/frequência
+   - Requer features não-negativas
+   - Features escaladas [0, 100] para simular contagens
+   - Alpha=1.0 (Laplace smoothing)
+
+3. BernoulliNB:
+   - Projetado para features binárias (0/1)
+   - Features binarizadas usando mediana como threshold
+   - Alpha=1.0 (Laplace smoothing)
+
+RESULTADOS COMPARATIVOS
+--------------------------------------------------------------------------------
+Modelo               | ROC-AUC    | F1-Macro   | Precision  | Recall     | Tempo     
+--------------------------------------------------------------------------------
+BernoulliNB          | 0.7782     | 0.5703     | 0.2131     | 0.7297     | 0.040     s
+MultinomialNB        | 0.7607     | 0.6233     | 0.2648     | 0.6396     | 0.011     s
+GaussianNB           | 0.7241     | 0.6309     | 0.3410     | 0.3268     | 0.046     s
+
+================================================================================
+MELHOR MODELO: BernoulliNB
+================================================================================
+ROC-AUC:       0.7782
+Accuracy:      0.7049
+Precision:     0.2131
+Recall:        0.7297
+F1-Score:      0.3299
+F1-Macro:      0.5703
+Tempo:         0.040s
+
+MATRIZ DE CONFUSÃO - MELHOR MODELO
+--------------------------------------------------------------------------------
+True Negatives:    7,756
+False Positives:   3,290
+False Negatives:   330
+True Positives:    891
+
+ANÁLISE
+--------------------------------------------------------------------------------
+1. Performance:
+   ✓ BernoulliNB teve melhor desempenho - binarização captura padrões relevantes
+
+2. Velocidade:
+   ✓ Todos os modelos são extremamente rápidos (<1s)
+   ✓ Naive Bayes é ideal para prototipagem rápida
+
+3. Trade-offs:
+   - Precision vs Recall: Ajustar threshold para otimizar
+   - GaussianNB: Simples mas assume independência
+   - MultinomialNB: Requer transformação de features
+   - BernoulliNB: Perda de informação na binarização

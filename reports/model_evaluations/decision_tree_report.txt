@@ -1,0 +1,127 @@
+================================================================================
+DECISION TREE CLASSIFIER - LEAK-FREE
+================================================================================
+
+CONFIGURAÇÕES TESTADAS
+--------------------------------------------------------------------------------
+
+BASELINE:
+   criterion: gini
+   max_depth: None
+   min_samples_split: 2
+   min_samples_leaf: 1
+   random_state: 42
+
+MAX_DEPTH_10:
+   criterion: gini
+   max_depth: 10
+   min_samples_split: 2
+   min_samples_leaf: 1
+   random_state: 42
+
+MIN_SAMPLES_SPLIT_100:
+   criterion: gini
+   max_depth: None
+   min_samples_split: 100
+   min_samples_leaf: 50
+   random_state: 42
+
+BALANCED:
+   criterion: gini
+   max_depth: None
+   min_samples_split: 2
+   min_samples_leaf: 1
+   class_weight: balanced
+   random_state: 42
+
+OPTIMIZED:
+   criterion: gini
+   max_depth: 15
+   min_samples_split: 50
+   min_samples_leaf: 20
+   max_features: sqrt
+   class_weight: balanced
+   random_state: 42
+
+================================================================================
+RESULTADOS COMPARATIVOS
+================================================================================
+Config                    | ROC-AUC    | F1-Macro   | Nodes      | Depth    | Tempo     
+----------------------------------------------------------------------------------------------------
+MIN_SAMPLES_SPLIT_100     | 0.7402     | 0.6009     | 849        | 19       | 0.694     s
+OPTIMIZED                 | 0.7162     | 0.5515     | 1,411      | 15       | 0.101     s
+MAX_DEPTH_10              | 0.6566     | 0.5535     | 861        | 10       | 0.610     s
+BASELINE                  | 0.5594     | 0.5308     | 6,325      | 36       | 1.165     s
+BALANCED                  | 0.5300     | 0.5342     | 8,367      | 49       | 0.959     s
+
+================================================================================
+MELHOR MODELO: MIN_SAMPLES_SPLIT_100
+================================================================================
+ROC-AUC:           0.7402
+Accuracy:          0.9080
+Precision:         0.5369
+Recall:            0.1636
+F1-Score:          0.2508
+F1-Macro:          0.6009
+Tempo:             0.694s
+
+COMPLEXIDADE DA ÁRVORE
+--------------------------------------------------------------------------------
+Número de Nós:     849
+Profundidade:      19
+Número de Folhas:  425
+
+MATRIZ DE CONFUSÃO
+--------------------------------------------------------------------------------
+True Negatives:    10,953
+False Positives:   163
+False Negatives:   966
+True Positives:    189
+
+TOP 30 FEATURES
+--------------------------------------------------------------------------------
+stop_event_rate                               | 0.521560
+time_hour                                     | 0.070957
+user_frequency                                | 0.024958
+stop_headway_std                              | 0.022601
+stop_density                                  | 0.021679
+device_lat                                    | 0.021440
+device_lon                                    | 0.020595
+stop_headway_mean                             | 0.019630
+user_stop_interaction                         | 0.018262
+hour                                          | 0.018258
+stop_hist_conversion_rate                     | 0.017211
+Unnamed: 0                                    | 0.016562
+hour_weekday_interaction                      | 0.016500
+int64_field_0                                 | 0.013206
+stop_dist_std                                 | 0.012820
+day_of_month                                  | 0.012312
+dist_device_stop                              | 0.011325
+stop_dist_mean                                | 0.011054
+stop_hist_count                               | 0.010365
+stop_recency_days                             | 0.010347
+stop_total_samples                            | 0.009714
+headway_x_hour                                | 0.009344
+hour_sin                                      | 0.009244
+day_sin                                       | 0.008599
+headway_avg_stop_hour                         | 0.008192
+stop_lat_event                                | 0.007595
+user_recency_score                            | 0.006635
+geo_distance                                  | 0.005917
+headway_x_weekend                             | 0.005815
+dist_x_peak                                   | 0.004804
+
+================================================================================
+ANÁLISE
+================================================================================
+1. Overfitting:
+   - BASELINE: 6,325 nós (possível overfitting)
+   - MIN_SAMPLES_SPLIT_100: 849 nós (controle de complexidade)
+
+2. Interpretabilidade:
+   - Profundidade: 19 níveis
+   - Árvores mais rasas são mais interpretáveis
+
+3. Performance vs Complexidade:
+   - Trade-off: Simplicidade vs Acurácia
+   - MIN_SAMPLES_SPLIT_100 oferece melhor equilíbrio

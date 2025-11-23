@@ -1,0 +1,72 @@
+======================================================================
+MODELO V5 FINAL - LIGHTGBM SEM VAZAMENTO TEMPORAL
+======================================================================
+
+ABORDAGEM:
+- Expanding Window Aggregations
+- Cada feature usa APENAS histórico anterior ao evento
+- Sem vazamento entre treino/teste
+- Sem vazamento temporal (futuro não influencia passado)
+- Reproduzível exatamente como em produção
+
+MÉTRICAS FINAIS:
+ROC-AUC:      0.8642
+Accuracy:     0.9390
+Precision:    0.5775
+Recall:       0.1941
+F1-Score:     0.2906
+F1-Macro:     0.6294
+Threshold:    0.2
+
+MATRIZ DE CONFUSÃO:
+True Negatives:  40,329
+False Positives: 398
+False Negatives: 2,258
+True Positives:  544
+
+TOP 30 FEATURES MAIS IMPORTANTES:
+stop_event_rate                         : 1213425.59
+stop_event_count                        :  305728.86
+time_hour                               :   16505.86
+stop_total_samples                      :   14050.10
+user_conversion_rate_expanding          :   13965.52 [EXPANDING]
+hour                                    :    9408.41
+int64_field_0                           :    7225.94
+stop_headway_std                        :    7081.54
+user_avg_hour_expanding                 :    6243.13 [EXPANDING]
+dist_x_peak                             :    5933.16
+headway_x_hour                          :    5696.22
+stop_lat_event                          :    5191.52
+user_stop_affinity_expanding            :    4473.71 [EXPANDING]
+hour_sin                                :    4469.42
+user_frequency                          :    4367.98
+hour_cos                                :    4324.25
+stop_headway_mean                       :    4215.74
+headway_x_weekend                       :    4097.90
+user_std_dist_expanding                 :    3825.73 [EXPANDING]
+user_avg_dist_expanding                 :    3456.33 [EXPANDING]
+minute                                  :    3413.13
+dist_x_weekend                          :    3171.03
+stop_event_count_expanding              :    3104.42 [EXPANDING]
+stop_dist_std                           :    3001.48
+dist_deviation_expanding                :    2997.63 [EXPANDING]
+device_lon                              :    2937.35
+user_total_events_expanding             :    2902.33 [EXPANDING]
+time_day_of_month                       :    2659.57
+stop_user_freq_expanding                :    2481.41 [EXPANDING]
+headway_avg_stop_hour                   :    2226.12
+
+Melhor iteração: 11
+Total de features: 55
+
+======================================================================
+COMPARAÇÃO COM MODELOS ANTERIORES:
+======================================================================
+
+V5 Original (COM vazamento):      ROC-AUC = 0.9666 (ILUSÓRIO)
+V5 Pipeline (sem vazamento):      ROC-AUC = 0.7446
+V5 FINAL (expanding window):      ROC-AUC = 0.8642
+
+CONCLUSÃO:
+Este é o modelo CORRETO que reflete a performance real em produção.
+Usa apenas informações que estariam disponíveis no momento da predição.

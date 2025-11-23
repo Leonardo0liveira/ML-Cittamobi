@@ -1,0 +1,37 @@
+================================================================================
+STACKING ENSEMBLE - TOP 3 MODELS
+================================================================================
+
+BASE MODELS:
+  1. Random Forest (ROC-AUC: 0.8046)
+  2. CatBoost      (ROC-AUC: 0.7976)
+  3. SGD Classifier (ROC-AUC: 0.7870)
+
+META MODEL: Logistic Regression
+STACKING METHOD: predict_proba with 5-fold CV
+
+================================================================================
+RESULTS
+================================================================================
+
+CV ROC-AUC:  0.7929 ± 0.0129
+Test ROC-AUC: 0.8048
+Precision: 0.3227
+Recall: 0.5238
+F1-Score: 0.3994
+
+              precision    recall  f1-score   support
+
+         0.0       0.94      0.88      0.91     11162
+         1.0       0.32      0.52      0.40      1241
+
+    accuracy                           0.84     12403
+   macro avg       0.63      0.70      0.65     12403
+weighted avg       0.88      0.84      0.86     12403
+
+
+GAINS vs BASE MODELS:
+  vs Random Forest: +0.02%
+  vs CatBoost:      +0.91%
+  vs SGD:           +2.26%
+  vs Average:       +1.06%

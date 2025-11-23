@@ -1,0 +1,46 @@
+================================================================================
+EXPERIMENTO V6 - OTIMIZAÇÃO DE HIPERPARÂMETROS CATBOOST
+================================================================================
+
+RANKING POR ROC-AUC:
+============================================================
+HIGH_LEARNING_RATE   | ROC-AUC: 0.9803 | F1-Macro: 0.7918 | Tempo: 14.5s
+OPTIMAL_COMBO        | ROC-AUC: 0.9803 | F1-Macro: 0.7999 | Tempo: 121.9s
+HIGH_ITERATIONS      | ROC-AUC: 0.9801 | F1-Macro: 0.7998 | Tempo: 51.0s
+BOOTSTRAP_BAYESIAN   | ROC-AUC: 0.9782 | F1-Macro: 0.7853 | Tempo: 22.6s
+BASELINE             | ROC-AUC: 0.9781 | F1-Macro: 0.7835 | Tempo: 18.7s
+MORE_REGULARIZATION  | ROC-AUC: 0.9779 | F1-Macro: 0.7811 | Tempo: 18.6s
+MORE_BORDERS         | ROC-AUC: 0.9772 | F1-Macro: 0.7818 | Tempo: 24.4s
+DEEP_TREES           | ROC-AUC: 0.9769 | F1-Macro: 0.7841 | Tempo: 370.7s
+LESS_REGULARIZATION  | ROC-AUC: 0.9657 | F1-Macro: 0.7313 | Tempo: 11.0s
+
+MELHOR CONFIGURAÇÃO: HIGH_LEARNING_RATE
+============================================================
+ROC-AUC:      0.9803
+F1-Macro:     0.7918
+Accuracy:     0.9599
+Precision:    0.4860
+Recall:       0.8004
+Threshold:    0.70
+Tempo:        14.5s
+
+PARÂMETROS DA MELHOR CONFIGURAÇÃO:
+========================================
+iterations          : 50
+learning_rate       : 0.1
+depth               : 10
+l2_leaf_reg         : 1.0
+border_count        : 128
+subsample           : 0.85
+rsm                 : 0.85
+
+IMPACTO RELATIVO (vs BASELINE 0.9781):
+==================================================
+HIGH_LEARNING_RATE  : +0.0023 (+0.23%)
+OPTIMAL_COMBO       : +0.0023 (+0.23%)
+HIGH_ITERATIONS     : +0.0020 (+0.21%)
+BOOTSTRAP_BAYESIAN  : +0.0002 (+0.02%)
+MORE_REGULARIZATION : -0.0002 (-0.02%)
+MORE_BORDERS        : -0.0009 (-0.09%)
+DEEP_TREES          : -0.0011 (-0.12%)
+LESS_REGULARIZATION : -0.0124 (-1.27%)

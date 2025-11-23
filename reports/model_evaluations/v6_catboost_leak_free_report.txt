@@ -1,0 +1,49 @@
+================================================================================
+MODELO V6 CATBOOST - SEM VAZAMENTO DE DADOS (LEAK-FREE)
+================================================================================
+
+CORREÇÕES APLICADAS:
+========================================
+✅ REMOVIDO: user_conversion_rate (calculada com target)
+✅ REMOVIDO: stop_conversion_rate (calculada com target)
+✅ REMOVIDO: conversion_interaction (baseada em target)
+✅ ADICIONADO: Expanding windows históricas
+✅ ADICIONADO: TimeSeriesSplit para validação temporal
+
+MÉTRICAS FINAIS (LEAK-FREE):
+========================================
+ROC-AUC:      0.8669 (REALÍSTICO!)
+Accuracy:     0.9023
+Precision:    0.3513
+Recall:       0.4934
+F1-Score:     0.4104
+F1-Macro:     0.6786
+Threshold:    0.7
+
+COMPARAÇÃO:
+====================
+COM VAZAMENTO:    98.07% AUC (IRREAL)
+SEM VAZAMENTO:    0.8669 AUC (REAL)
+DIFERENÇA:        11.38 pontos (= VAZAMENTO)
+
+TOP FEATURES (SEM VAZAMENTO):
+  stop_event_rate: 30.23
+  stop_event_count: 3.93
+  headway_x_hour: 2.87
+  stop_headway_mean: 2.79
+  hour_cos: 2.50
+  hour_sin: 2.29
+  stop_avg_freq_hist: 2.28
+  user_frequency: 2.21
+  stop_headway_std: 2.20
+  day_cos: 2.05
+  dist_x_peak: 1.99
+  minute: 1.86
+  dist_device_stop: 1.66
+  hour: 1.63
+  time_hour: 1.61
+  user_avg_dist_hist: 1.53
+  user_stop_historical_affinity: 1.53
+  stop_lon_event: 1.53
+  gtfs_stop_id: 1.49
+  stop_historical_conversion_rate: 1.43

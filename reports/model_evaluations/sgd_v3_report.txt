@@ -1,0 +1,81 @@
+================================================================================
+SGD CLASSIFIER V3 - QUICK WINS REPORT
+================================================================================
+
+MELHORIAS IMPLEMENTADAS
+--------------------------------------------------------------------------------
+1. Feature Engineering Avançado:
+   - geo_distance: distância euclidiana device <-> stop
+   - stop_rate_per_sample: taxa normalizada por amostras
+   - stop_density: densidade de eventos
+   - stop_rate_squared: polinômio quadrático
+   - stop_rate_log: transformação logarítmica
+   - time_period: 7 períodos do dia
+   - hour_weekday_interaction: interação hora x dia
+   - distance_from_peak: distância do horário de pico
+   - recency_scores: exponential decay
+   - user_stop_recency_interaction: combinação inteligente
+
+2. Calibração de Probabilidades:
+   - CalibratedClassifierCV com método sigmoid
+
+3. Threshold Otimizado:
+   - Precision >= 0.35 com recall maximizado
+
+COMPARAÇÃO DE PERFORMANCE
+--------------------------------------------------------------------------------
+Modelo                    | Features   | ROC-AUC    | Ganho      | F1-Macro  
+--------------------------------------------------------------------------------
+V2 (Baseline)             | 20         | 0.7870     | -          | 0.6637    
+V3 (Sem Calibração)       | 63         | 0.7909     |     +0.38% | 0.6692    
+V3 (Com Calibração)       | 63         | 0.7960     |     +0.90% | 0.6665    
+
+MÉTRICAS DETALHADAS V3 FINAL
+--------------------------------------------------------------------------------
+ROC-AUC:           0.7960
+Accuracy:          0.8698
+Precision:         0.3500
+Recall:            0.4836
+F1-Score:          0.4061
+F1-Macro:          0.6665
+Threshold:         0.16
+
+MATRIZ DE CONFUSÃO
+--------------------------------------------------------------------------------
+True Negatives:    10,123
+False Positives:   1,014
+False Negatives:   583
+True Positives:    546
+
+TOP 30 FEATURES V3
+--------------------------------------------------------------------------------
+[NEW] stop_rate_squared                             | Coef: -0.996910
+[NEW] stop_rate_log                                 | Coef: +0.835074
+      stop_event_rate                               | Coef: +0.400804
+[NEW] stop_density                                  | Coef: +0.399992
+      stop_event_count                              | Coef: +0.387059
+      hour_sin                                      | Coef: -0.356139
+      stop_dist_mean                                | Coef: +0.339974
+      time_day_of_month                             | Coef: +0.288350
+      stop_lat_event                                | Coef: -0.280429
+      time_day_of_week                              | Coef: -0.263453
+[NEW] distance_from_peak                            | Coef: -0.246654
+[NEW] stop_recency_score                            | Coef: +0.228492
+      device_lat                                    | Coef: -0.202101
+      stop_total_samples                            | Coef: -0.168298
+      is_weekend                                    | Coef: +0.167092
+[NEW] time_period                                   | Coef: -0.166458
+      is_peak_hour                                  | Coef: -0.161442
+      hour_cos                                      | Coef: -0.142948
+      headway_x_weekend                             | Coef: -0.141646
+[NEW] stop_rate_per_sample                          | Coef: +0.139565
+      day_of_month                                  | Coef: -0.139371
+      day_of_week                                   | Coef: +0.131503
+      user_stop_interaction                         | Coef: +0.128425
+      time_month                                    | Coef: -0.124266
+      stop_lon_event                                | Coef: -0.117598
+      hour                                          | Coef: +0.114868
+      stop_dist_std                                 | Coef: +0.114308
+      device_lon                                    | Coef: -0.106728
+      headway_x_hour                                | Coef: +0.106406
+      dist_x_peak                                   | Coef: +0.099641

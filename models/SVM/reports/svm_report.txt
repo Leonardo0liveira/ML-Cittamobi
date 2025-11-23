@@ -1,0 +1,102 @@
+================================================================================
+SUPPORT VECTOR MACHINE (SVM) - LEAK-FREE
+================================================================================
+
+CONFIGURAÇÕES TESTADAS
+--------------------------------------------------------------------------------
+
+LINEAR_SVC:
+   Model Type: LinearSVC
+   C: 1.0
+   class_weight: balanced
+   max_iter: 10000
+   random_state: 42
+   dual: False
+   Needs Calibration: True
+
+SVC_LINEAR:
+   Model Type: SVC
+   kernel: linear
+   C: 1.0
+   class_weight: balanced
+   probability: True
+   random_state: 42
+   max_iter: 5000
+   Needs Calibration: False
+
+SVC_RBF:
+   Model Type: SVC
+   kernel: rbf
+   C: 1.0
+   gamma: scale
+   class_weight: balanced
+   probability: True
+   random_state: 42
+   max_iter: 5000
+   Needs Calibration: False
+
+SVC_POLY:
+   Model Type: SVC
+   kernel: poly
+   degree: 3
+   C: 1.0
+   gamma: scale
+   class_weight: balanced
+   probability: True
+   random_state: 42
+   max_iter: 5000
+   Needs Calibration: False
+
+================================================================================
+RESULTADOS COMPARATIVOS
+================================================================================
+Config               | Kernel     | ROC-AUC    | F1-Macro   | Tempo     
+--------------------------------------------------------------------------------
+LINEAR_SVC           | linear     | 0.7613     | 0.5645     | 3.95      s
+SVC_RBF              | rbf        | 0.5954     | 0.4745     | 117.57    s
+SVC_POLY             | poly       | 0.4367     | 0.4787     | 78.62     s
+SVC_LINEAR           | linear     | 0.3550     | 0.4745     | 47.84     s
+
+================================================================================
+MELHOR MODELO: LINEAR_SVC
+================================================================================
+ROC-AUC:           0.7613
+Accuracy:          0.9074
+Precision:         0.6406
+Recall:            0.1034
+F1-Score:          0.1780
+F1-Macro:          0.5645
+Tempo:             3.95s
+
+MATRIZ DE CONFUSÃO
+--------------------------------------------------------------------------------
+True Negatives:    11,006
+False Positives:   69
+False Negatives:   1,067
+True Positives:    123
+
+================================================================================
+ANÁLISE SVM
+================================================================================
+
+1. VANTAGENS:
+   - Efetivo em espaços de alta dimensão
+   - Robusto contra overfitting (margin maximization)
+   - Kernel trick permite não-linearidade
+   - class_weight='balanced' lida com desbalanceamento
+
+2. TRADE-OFFS:
+   - Computacionalmente custoso (O(n²) a O(n³))
+   - Sensível à escala das features (requer normalização)
+   - LinearSVC precisa calibração para probabilidades
+   - Kernels não-lineares podem ser lentos
+
+3. KERNELS COMPARADOS:
+   - Linear: Mais rápido, melhor para dados linearmente separáveis
+   - RBF: Gaussiano, bom para não-linearidade
+   - Poly: Polinomial, captura interações complexas
+
+4. RECOMENDAÇÃO:
+   - Kernel Linear foi o melhor
+   - Dados parecem ser linearmente separáveis
+   - Considere usar SGDClassifier para datasets maiores

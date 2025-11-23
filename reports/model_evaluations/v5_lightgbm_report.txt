@@ -1,0 +1,37 @@
+======================================================================
+MODELO V5 - LIGHTGBM - RELATÓRIO FINAL
+======================================================================
+
+ROC-AUC:      0.9666
+Accuracy:     0.9656
+Precision:    0.5858
+Recall:       0.3509
+F1-Score:     0.4389
+F1-Macro:     0.7106
+Threshold:    0.4
+
+Matriz de Confusão:
+TN: 42,046 | FP: 420
+FN: 1,099 | TP: 594
+
+Top 20 Features:
+  conversion_interaction: 3122794.66
+  user_conversion_rate: 220554.80
+  stop_conversion_rate: 70973.60
+  user_total_conversions: 23041.30
+  user_stop_affinity: 8565.91
+  Unnamed_ 0: 7411.99
+  int64_field_0: 7266.43
+  stop_event_rate: 6964.08
+  device_lon: 6271.13
+  dist_deviation: 6142.38
+  minute: 6061.37
+  headway_x_hour: 5870.74
+  stop_lon_event: 5790.91
+  dist_device_stop: 5637.14
+  headway_x_weekend: 5537.11
+  stop_user_freq_median: 5190.77
+  headway_avg_stop_hour: 5168.45
+  user_total_events: 4986.60
+  device_lat: 4982.38
+  user_avg_hour: 4976.38

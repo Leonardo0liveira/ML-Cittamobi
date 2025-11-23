@@ -1,0 +1,108 @@
+================================================================================
+SGD CLASSIFIER V4 - ADVANCED FEATURES (FASE 2) REPORT
+================================================================================
+
+MELHORIAS IMPLEMENTADAS - FASE 2
+--------------------------------------------------------------------------------
+1. Geographic Clusters:
+   - K-means clustering (K=8) em device_lat/device_lon
+   - Cluster-specific conversion rates (8 features)
+
+2. Stop Tiers:
+   - Quantile-based tiers (5 tiers) de stop_event_rate
+
+3. Complex Interactions:
+   - stop_tier × time_period
+   - geo_cluster × hour
+   - stop_tier × is_weekend
+   - geo_cluster × time_period
+
+4. Advanced Scores:
+   - user_engagement_score: agregação multi-dimensional
+   - stop_popularity_score: combinação de métricas
+
+5. Polynomial Interactions:
+   - stop_rate × count
+   - user_conv × stop_conv
+   - geo_distance × stop_rate
+
+6. Time-Based Features:
+   - Períodos específicos: morning_peak, evening_peak, lunch, night
+
+7. Recency Interactions:
+   - combined_recency, recency_ratio
+
+COMPARAÇÃO DE PERFORMANCE
+--------------------------------------------------------------------------------
+Modelo                    | Features   | ROC-AUC    | Ganho        | F1-Macro  
+--------------------------------------------------------------------------------
+V2 (Feature Selection)    | 20         | 0.7917     | -            | 0.7000    
+V3 (Quick Wins)           | 31         | 0.8027     |       +1.10% | 0.6603    
+V4 (Advanced Features)    | 88         | 0.7963     |       -0.64% | 0.6630    
+
+MÉTRICAS DETALHADAS V4 FINAL
+--------------------------------------------------------------------------------
+ROC-AUC:           0.7963
+Accuracy:          0.8695
+Precision:         0.3500
+Recall:            0.4646
+F1-Score:          0.3992
+F1-Macro:          0.6630
+Threshold:         0.18
+
+MATRIZ DE CONFUSÃO
+--------------------------------------------------------------------------------
+True Negatives:    10,138
+False Positives:   988
+False Negatives:   613
+True Positives:    532
+
+TOP 40 FEATURES V4
+--------------------------------------------------------------------------------
+[V4] cluster_4_conversion                          | Coef: +0.753938
+     hour_sin                                      | Coef: -0.348021
+     distance_from_peak                            | Coef: -0.334689
+     stop_lat_event                                | Coef: -0.327608
+     device_lat                                    | Coef: -0.319586
+     time_day_of_month                             | Coef: +0.302265
+[V4] stop_tier_x_time_period                       | Coef: +0.276639
+     stop_dist_mean                                | Coef: +0.272501
+[V4] stop_tier                                     | Coef: +0.260772
+     headway_x_weekend                             | Coef: -0.255356
+     stop_rate_squared                             | Coef: -0.229809
+     is_weekend                                    | Coef: +0.225232
+     stop_rate_log                                 | Coef: +0.221036
+     stop_rate_per_sample                          | Coef: +0.220885
+[V4] cluster_1_conversion                          | Coef: -0.206722
+     stop_total_samples                            | Coef: +0.193056
+     hour_weekday_interaction                      | Coef: +0.177712
+[V4] user_engagement_score                         | Coef: +0.170585
+     is_holiday                                    | Coef: -0.170215
+     dist_x_weekend                                | Coef: -0.158626
+     stop_hist_count                               | Coef: +0.155321
+     geo_distance                                  | Coef: +0.155050
+[V4] stop_tier_x_weekend                           | Coef: -0.154737
+     time_month                                    | Coef: -0.147688
+     time_day_of_week                              | Coef: -0.144973
+     stop_recency_score                            | Coef: +0.144364
+[V4] combined_recency                              | Coef: -0.142614
+[V4] geo_cluster_x_hour                            | Coef: +0.136945
+     day_of_month                                  | Coef: -0.116772
+[V4] stop_rate_x_count                             | Coef: +0.112492
+     user_recency_score                            | Coef: -0.111153
+     stop_event_rate                               | Coef: +0.110787
+     stop_density                                  | Coef: +0.109746
+     stop_lon_event                                | Coef: +0.107764
+[V4] cluster_7_conversion                          | Coef: +0.107682
+[V4] recency_ratio                                 | Coef: +0.105234
+[V4] stop_popularity_score                         | Coef: -0.105074
+[V4] is_lunch_time                                 | Coef: +0.093929
+     hour                                          | Coef: -0.092561
+     stop_recency_days                             | Coef: -0.092340
+
+================================================================================
+ANÁLISE DE GANHOS
+================================================================================
+V2 → V3:  +1.10% (Quick Wins: feature eng básico + calibração)
+V3 → V4:  -0.64% (Advanced: clusters, interactions, scores)
+V2 → V4:  +0.46% (Total acumulado)

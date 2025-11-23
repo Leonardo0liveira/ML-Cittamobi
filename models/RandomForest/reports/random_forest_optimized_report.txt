@@ -1,0 +1,54 @@
+================================================================================
+RANDOM FOREST - OPTIMIZED (Undersampling + CV)
+================================================================================
+
+BEST MODEL: OPTIMIZED
+--------------------------------------------------------------------------------
+CV ROC-AUC:    0.7992 (+/- 0.0135)
+Test ROC-AUC:  0.8083
+Accuracy:      0.8595
+Precision:     0.3371
+Recall:        0.5231
+F1-Score:      0.4100
+F1-Macro:      0.6651
+
+CLASSIFICATION REPORT
+--------------------------------------------------------------------------------
+              precision    recall  f1-score   support
+
+         0.0       0.95      0.89      0.92     11126
+         1.0       0.34      0.52      0.41      1145
+
+    accuracy                           0.86     12271
+   macro avg       0.64      0.71      0.67     12271
+weighted avg       0.89      0.86      0.87     12271
+
+
+CONFUSION MATRIX
+--------------------------------------------------------------------------------
+                Predicted 0    Predicted 1
+Actual 0              9,948          1,178
+Actual 1                546            599
+
+TOP 20 FEATURES
+--------------------------------------------------------------------------------
+stop_event_rate                          0.131654
+stop_density                             0.120495
+stop_event_count                         0.093280
+stop_total_samples                       0.074041
+stop_hist_conversion_rate                0.049569
+stop_hist_count                          0.033572
+stop_rate_per_sample                     0.028247
+stop_recency_days                        0.020207
+headway_x_hour                           0.020064
+stop_dist_mean                           0.018109
+stop_headway_mean                        0.017303
+device_lon                               0.017119
+hour_sin                                 0.016867
+hour                                     0.016828
+stop_dist_std                            0.016664
+user_frequency                           0.016536
+Unnamed: 0                               0.015784
+headway_avg_stop_hour                    0.015523
+stop_recency_score                       0.015517
+stop_lon_event                           0.015349

@@ -1,0 +1,67 @@
+# Arquivos de dados grandes
+data/sampled_dataset.csv
+data/*.csv
+data/01_raw/*.csv
+data/02_interim/*.csv
+data/03_processed/*.csv
+
+# Modelos treinados (arquivos grandes)
+models/**/*.cbm
+models/**/*.json
+models/**/*.pkl
+models/**/*.h5
+models/trained/
+models/predictions/
+
+# Arquivos de visualização
+*.png
+*.jpg
+*.jpeg
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Ambiente
+.env
+.env.local

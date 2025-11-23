@@ -1,0 +1,63 @@
+================================================================================
+K-NN COM WEIGHTS='DISTANCE' - SEM VAZAMENTO DE DADOS
+================================================================================
+
+CONFIGURAÇÃO:
+========================================
+Melhor K:         31
+weights:          'distance'
+algorithm:        'auto'
+metric:           'minkowski' (p=2)
+Normalização:     StandardScaler
+Validação:        TimeSeriesSplit
+
+MÉTRICAS FINAIS (LEAK-FREE):
+========================================
+ROC-AUC:      0.7492
+Accuracy:     0.8968
+Precision:    0.4209
+Recall:       0.2980
+F1-Score:     0.3489
+F1-Macro:     0.6464
+Threshold:    0.3
+
+MATRIZ DE CONFUSÃO:
+TN: 9,621 | FP: 421
+FN: 721 | TP: 306
+
+COMPARAÇÃO DE K VALUES:
+========================================
+K=31: ROC-AUC=0.7492 | F1-Macro=0.6464
+K=21: ROC-AUC=0.7414 | F1-Macro=0.6415
+K=15: ROC-AUC=0.7305 | F1-Macro=0.6421
+K=11: ROC-AUC=0.7166 | F1-Macro=0.6340
+K= 7: ROC-AUC=0.6926 | F1-Macro=0.6264
+K= 5: ROC-AUC=0.6742 | F1-Macro=0.6170
+K= 3: ROC-AUC=0.6474 | F1-Macro=0.5868
+
+TOP 20 FEATURES (por variância):
+  dist_deviation_hist: 1.0000
+  dist_ratio_hist: 1.0000
+  user_avg_hour_hist: 1.0000
+  Unnamed: 0: 1.0000
+  stop_headway_mean: 1.0000
+  stop_dist_std: 1.0000
+  stop_dist_mean: 1.0000
+  day_of_month_cos: 1.0000
+  dist_x_peak: 1.0000
+  week_cos: 1.0000
+  day_cos: 1.0000
+  dayofweek_cos: 1.0000
+  day: 1.0000
+  user_hist_conversion_rate: 1.0000
+  user_hist_conversions: 1.0000
+  is_peak_hour: 1.0000
+  time_hour: 1.0000
+  stop_hist_conversion_rate: 1.0000
+  stop_lon_event: 1.0000
+  dist_device_stop: 1.0000
+
+COMPARAÇÃO COM OUTROS MODELOS:
+V5 LightGBM: 86.42% ROC-AUC
+V6 CatBoost: 86.69% ROC-AUC
+K-NN (K=31): 74.92% ROC-AUC
