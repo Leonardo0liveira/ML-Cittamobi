@@ -1,0 +1,30 @@
+# Requirements para ML-Cittamobi
+# Para instalar: pip install -r requirements.txt
+
+# Bibliotecas principais
+numpy==1.26.4
+pandas==2.2.2
+scipy==1.11.4
+scikit-learn==1.4.2
+statsmodels==0.14.2
+
+# Visualização
+matplotlib==3.8.4
+seaborn>=0.12.0
+
+# Machine Learning
+xgboost>=2.0.0
+lightgbm>=4.1.0
+catboost>=1.2.2
+
+# Geolocalização
+geopy>=2.3.0
+
+# Features temporais
+holidays>=0.35
+
+# Jupyter
+ipykernel>=6.25.0
+
+# Google Cloud
+google-cloud-bigquery>=3.11.0
