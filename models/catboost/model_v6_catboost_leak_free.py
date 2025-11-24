@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import (roc_auc_score, accuracy_score, precision_score, 
                              recall_score, f1_score, confusion_matrix, classification_report, roc_curve)
@@ -18,21 +17,21 @@ warnings.filterwarnings('ignore')
 print(f"\n{'='*80}")
 print(f"MODELO V6 CATBOOST - SEM VAZAMENTO DE DADOS (LEAK-FREE)")
 print(f"{'='*80}")
-print(f"CORREÇÃO: Removendo features que usam target + Expanding Windows")
+print(f"CORREÇÃO: Removendo features que usam target")
 print(f"{'='*80}")
 
-# Carregar dados do BigQuery
-project_id = "proj-ml-469320"
-client = bigquery.Client(project=project_id)
+# # Carregar dados do BigQuery
+# project_id = "proj-ml-469320"
+# client = bigquery.Client(project=project_id)
 
-query = """
-    SELECT * FROM `proj-ml-469320.app_cittamobi.dataset-updated` 
-    TABLESAMPLE SYSTEM (20 PERCENT)
-    LIMIT 50000
-"""
+# query = """
+#     SELECT * FROM `proj-ml-469320.app_cittamobi.dataset-updated` 
+#     TABLESAMPLE SYSTEM (20 PERCENT)
+#     LIMIT 50000
+# """
 
-print("Carregando dados do BigQuery...")
-df = client.query(query).to_dataframe()
+# print("Carregando dados do BigQuery...")
+df = pd.read_csv("/Users/leonardooliveira/Downloads/Projeto Machine Learning/ML-Cittamobi/models/catboost/dataset-updated.csv", sep=",")
 print(f"✓ Dados carregados: {len(df):,} registros")
 
 # ===========================================================================
@@ -49,10 +48,10 @@ print("   3. stop_conversion_rate = target.mean() por parada")
 print("   4. conversion_interaction = user_conversion_rate * stop_conversion_rate")
 print("   5. Todas calculadas usando o próprio target!")
 
-print("\n💡 SOLUÇÃO: EXPANDING WINDOWS")
-print("   - Para cada evento no tempo T, usar apenas dados < T")
-print("   - Nunca usar informações do futuro")
-print("   - Simular ambiente de produção real")
+print("\n💡 SOLUÇÃO: REMOVER FEATURES COM VAZAMENTO")
+print("   - Não usar features calculadas com o target")
+print("   - Usar apenas features independentes")
+print("   - TimeSeriesSplit para validação temporal")
 
 # ===========================================================================
 # PREPARAÇÃO TEMPORAL DOS DADOS
@@ -64,7 +63,7 @@ print(f"{'='*70}")
 target = "target"
 
 # Converter timestamp e ordenar temporalmente
-df['event_timestamp'] = pd.to_datetime(df['event_timestamp'], format='ISO8601')
+df['event_timestamp'] = pd.to_datetime(df['event_timestamp'], format='mixed', utc=True)
 df = df.sort_values('event_timestamp').reset_index(drop=True)
 
 print(f"✓ Dados ordenados temporalmente")
@@ -92,106 +91,14 @@ df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / 24)
 print(f"✓ Features temporais criadas")
 
 # ===========================================================================
-# EXPANDING WINDOWS - SEM VAZAMENTO
-# ===========================================================================
-print(f"\n{'='*70}")
-print(f"ETAPA 2: EXPANDING WINDOWS (SEM VAZAMENTO)")
-print(f"{'='*70}")
-
-def create_expanding_features_leak_free(df):
-    """
-    Cria features usando expanding windows para prevenir vazamento de dados.
-    Para cada linha i, usa apenas dados das linhas 0 até i-1.
-    """
-    df_result = df.copy()
-    
-    # Inicializar colunas
-    user_cols = ['user_historical_events', 'user_historical_conversions', 
-                 'user_historical_conversion_rate', 'user_avg_hour_hist', 'user_avg_dist_hist']
-    
-    stop_cols = ['stop_historical_events', 'stop_historical_conversions',
-                 'stop_historical_conversion_rate', 'stop_avg_freq_hist']
-    
-    for col in user_cols + stop_cols:
-        df_result[col] = 0.0
-    
-    print("📊 Calculando expanding windows...")
-    
-    # Para cada linha, calcular features baseadas apenas no histórico anterior
-    for i in range(len(df)):
-        if i % 10000 == 0:
-            print(f"   Processando linha {i:,}/{len(df):,} ({i/len(df)*100:.1f}%)")
-        
-        if i == 0:
-            # Primeira linha: sem histórico
-            continue
-            
-        # Dados históricos (apenas linhas anteriores)
-        hist_data = df.iloc[:i]  # Apenas dados ANTERIORES à linha atual
-        current_user = df.iloc[i]['user_pseudo_id']
-        current_stop = df.iloc[i]['gtfs_stop_id']
-        
-        # Features do usuário (histórico)
-        if current_user in hist_data['user_pseudo_id'].values:
-            user_hist = hist_data[hist_data['user_pseudo_id'] == current_user]
-            df_result.iloc[i, df_result.columns.get_loc('user_historical_events')] = len(user_hist)
-            df_result.iloc[i, df_result.columns.get_loc('user_historical_conversions')] = user_hist[target].sum()
-            
-            if len(user_hist) > 0:
-                df_result.iloc[i, df_result.columns.get_loc('user_historical_conversion_rate')] = user_hist[target].mean()
-                df_result.iloc[i, df_result.columns.get_loc('user_avg_hour_hist')] = user_hist['hour'].mean()
-                
-                if 'dist_device_stop' in user_hist.columns:
-                    df_result.iloc[i, df_result.columns.get_loc('user_avg_dist_hist')] = user_hist['dist_device_stop'].mean()
-        
-        # Features da parada (histórico)  
-        if current_stop in hist_data['gtfs_stop_id'].values:
-            stop_hist = hist_data[hist_data['gtfs_stop_id'] == current_stop]
-            df_result.iloc[i, df_result.columns.get_loc('stop_historical_events')] = len(stop_hist)
-            df_result.iloc[i, df_result.columns.get_loc('stop_historical_conversions')] = stop_hist[target].sum()
-            
-            if len(stop_hist) > 0:
-                df_result.iloc[i, df_result.columns.get_loc('stop_historical_conversion_rate')] = stop_hist[target].mean()
-                
-                if 'user_frequency' in stop_hist.columns:
-                    df_result.iloc[i, df_result.columns.get_loc('stop_avg_freq_hist')] = stop_hist['user_frequency'].mean()
-    
-    return df_result
-
-print("\n🔄 Criando expanding windows (pode demorar alguns minutos)...")
-df_with_expanding = create_expanding_features_leak_free(df)
-
-print(f"✓ Expanding windows criadas!")
-print(f"✓ Features históricas sem vazamento de dados")
-
-# Features de interação baseadas no histórico (SEM VAZAMENTO)
-df_with_expanding['historical_interaction'] = (
-    df_with_expanding['user_historical_conversion_rate'] * 
-    df_with_expanding['stop_historical_conversion_rate']
-)
-
-df_with_expanding['user_stop_historical_affinity'] = (
-    df_with_expanding['user_historical_events'] * 
-    df_with_expanding['stop_historical_events']
-)
-
-# Desvio da distância baseado no histórico
-if 'dist_device_stop' in df_with_expanding.columns:
-    df_with_expanding['dist_deviation_hist'] = abs(
-        df_with_expanding['dist_device_stop'] - df_with_expanding['user_avg_dist_hist']
-    )
-
-print(f"✓ Features de interação históricas criadas")
-
-# ===========================================================================
 # LIMPEZA E PREPARAÇÃO FINAL
 # ===========================================================================
 print(f"\n{'='*70}")
-print(f"ETAPA 3: LIMPEZA E PREPARAÇÃO FINAL")
+print(f"ETAPA 2: LIMPEZA E PREPARAÇÃO FINAL")
 print(f"{'='*70}")
 
 # Filtros moderados (como antes)
-df_clean = df_with_expanding.copy()
+df_clean = df.copy()
 
 if 'user_frequency' in df_clean.columns:
     user_freq_threshold = df_clean['user_frequency'].quantile(0.10)
@@ -236,7 +143,7 @@ print(f"Classe 1: {target_dist[1]:,} ({target_dist[1]/len(y)*100:.2f}%)")
 # DIVISÃO TEMPORAL
 # ===========================================================================
 print(f"\n{'='*70}")
-print(f"ETAPA 4: DIVISÃO TEMPORAL (TimeSeriesSplit)")
+print(f"ETAPA 3: DIVISÃO TEMPORAL (TimeSeriesSplit)")
 print(f"{'='*70}")
 
 tscv = TimeSeriesSplit(n_splits=3)
@@ -252,7 +159,7 @@ print(f"✓ Train: {len(X_train):,} | Test: {len(X_test):,}")
 # TREINAMENTO CATBOOST LEAK-FREE
 # ===========================================================================
 print(f"\n{'='*70}")
-print(f"ETAPA 5: TREINAMENTO CATBOOST (LEAK-FREE)")
+print(f"ETAPA 4: TREINAMENTO CATBOOST (LEAK-FREE)")
 print(f"{'='*70}")
 
 # Criar pools
@@ -264,7 +171,7 @@ print("="*50)
 print("✅ SEM user_conversion_rate (calculada com target)")
 print("✅ SEM stop_conversion_rate (calculada com target)")  
 print("✅ SEM conversion_interaction (baseada em target)")
-print("✅ APENAS features históricas (expanding windows)")
+print("✅ APENAS features independentes do target")
 print("✅ TimeSeriesSplit para validação temporal")
 print("="*50)
 
@@ -302,7 +209,7 @@ print(f"✓ Melhor score: {model.get_best_score()['validation']['AUC']:.4f}")
 # PREDIÇÕES E AVALIAÇÃO
 # ===========================================================================
 print(f"\n{'='*70}")
-print(f"ETAPA 6: PREDIÇÕES E AVALIAÇÃO (LEAK-FREE)")
+print(f"ETAPA 5: PREDIÇÕES E AVALIAÇÃO (LEAK-FREE)")
 print(f"{'='*70}")
 
 y_pred_proba = model.predict_proba(X_test)[:, 1]
@@ -337,6 +244,9 @@ print(f"   F1-Score:     {f1:.4f}")
 print(f"   F1-Macro:     {f1_macro:.4f}")
 print(f"   Threshold:    {best_threshold}")
 
+print(f"\n📋 CLASSIFICATION REPORT:")
+print(classification_report(y_test, y_pred, target_names=['Classe 0 (Não Conversão)', 'Classe 1 (Conversão)']))
+
 cm = confusion_matrix(y_test, y_pred)
 print(f"\n📊 Matriz de Confusão:")
 print(cm)
@@ -355,8 +265,8 @@ print(f"   Problema: Usava target para criar features!")
 
 print(f"\n🛡️ SEM VAZAMENTO (V6 corrigido):")
 print(f"   ROC-AUC: {roc_auc:.4f} (REALÍSTICO)")
-print(f"   Features: Apenas históricas (expanding windows)")
-print(f"   Solução: Simula ambiente de produção real!")
+print(f"   Features: Apenas independentes do target")
+print(f"   Solução: Validação temporal correta!")
 
 print(f"\n💡 DIFERENÇA: {98.07 - roc_auc*100:.2f} pontos percentuais")
 print(f"   Esta diferença representa o VAZAMENTO DE DADOS!")
@@ -365,7 +275,7 @@ print(f"   Esta diferença representa o VAZAMENTO DE DADOS!")
 # VISUALIZAÇÕES LEAK-FREE
 # ===========================================================================
 print(f"\n{'='*70}")
-print(f"ETAPA 7: VISUALIZAÇÕES (LEAK-FREE)")
+print(f"ETAPA 6: VISUALIZAÇÕES (LEAK-FREE)")
 print(f"{'='*70}")
 
 # ROC Curve REALÍSTICA
@@ -411,7 +321,7 @@ plt.close()
 # SALVAR MODELO E RELATÓRIO
 # ===========================================================================
 print(f"\n{'='*70}")
-print(f"ETAPA 8: SALVANDO MODELO LEAK-FREE")
+print(f"ETAPA 7: SALVANDO MODELO LEAK-FREE")
 print(f"{'='*70}")
 
 model.save_model('catboost_model_v6_leak_free.cbm')
@@ -428,8 +338,8 @@ with open('../../reports/v6_catboost_leak_free_report.txt', 'w') as f:
     f.write("✅ REMOVIDO: user_conversion_rate (calculada com target)\n")
     f.write("✅ REMOVIDO: stop_conversion_rate (calculada com target)\n")
     f.write("✅ REMOVIDO: conversion_interaction (baseada em target)\n")
-    f.write("✅ ADICIONADO: Expanding windows históricas\n")
-    f.write("✅ ADICIONADO: TimeSeriesSplit para validação temporal\n\n")
+    f.write("✅ APENAS features independentes do target\n")
+    f.write("✅ TimeSeriesSplit para validação temporal\n\n")
     
     f.write("MÉTRICAS FINAIS (LEAK-FREE):\n")
     f.write("="*40 + "\n")
