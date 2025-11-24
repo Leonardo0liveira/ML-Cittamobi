@@ -53,8 +53,14 @@ from datetime import datetime
 import warnings
 import json
 import pickle
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import roc_curve, auc, precision_recall_curve
+from sklearn.calibration import calibration_curve
 
 warnings.filterwarnings('ignore')
+plt.style.use('seaborn-v0_8-darkgrid')
+sns.set_palette("husl")
 
 print("="*80)
 print("🚀 MODEL V8 - VERSÃO DE PRODUÇÃO PARA O CLIENTE")
@@ -791,4 +797,347 @@ print(f"📅 Fim: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print("="*80)
 print()
 print("🎉 MODELO COM TIMESERIESPLIT PRONTO PARA DEPLOY! 🎉")
+print("="*80)
+print()
+
+# ============================================================================
+# 14. GERAR VISUALIZAÇÕES
+# ============================================================================
+print("="*80)
+print("📊 14. GERANDO VISUALIZAÇÕES")
+print("="*80)
+print()
+
+# Criar diretório para visualizações
+import os
+os.makedirs('visualizations', exist_ok=True)
+
+# ----------------------------------------------------------------------------
+# GRÁFICO 1: CONFUSION MATRIX
+# ----------------------------------------------------------------------------
+print("   [1/7] Gerando Confusion Matrix...")
+fig, ax = plt.subplots(figsize=(10, 8))
+sns.heatmap(
+    cm, 
+    annot=True, 
+    fmt='d', 
+    cmap='Blues', 
+    square=True,
+    cbar_kws={'label': 'Contagem'},
+    ax=ax
+)
+ax.set_xlabel('Predito', fontsize=14, fontweight='bold')
+ax.set_ylabel('Real', fontsize=14, fontweight='bold')
+ax.set_title('Confusion Matrix - Model V8 Production\nTimeSeriesSplit + Ensemble', 
+             fontsize=16, fontweight='bold', pad=20)
+ax.set_xticklabels(['Não Conversão (0)', 'Conversão (1)'])
+ax.set_yticklabels(['Não Conversão (0)', 'Conversão (1)'])
+
+# Adicionar estatísticas
+textstr = f'Accuracy: {(cm[0,0]+cm[1,1])/cm.sum():.2%}\n'
+textstr += f'Precision C1: {cm[1,1]/(cm[1,1]+cm[0,1]):.2%}\n'
+textstr += f'Recall C1: {cm[1,1]/(cm[1,1]+cm[1,0]):.2%}\n'
+textstr += f'F1-Score C1: {f1_class_1:.2%}'
+props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
+ax.text(1.35, 0.5, textstr, transform=ax.transAxes, fontsize=12,
+        verticalalignment='center', bbox=props)
+
+plt.tight_layout()
+plt.savefig('visualizations/confusion_matrix_v8.png', dpi=300, bbox_inches='tight')
+plt.close()
+print("      ✓ visualizations/confusion_matrix_v8.png")
+
+# ----------------------------------------------------------------------------
+# GRÁFICO 2: ROC CURVE
+# ----------------------------------------------------------------------------
+print("   [2/7] Gerando ROC Curve...")
+fpr, tpr, _ = roc_curve(y_test_final, y_pred_ensemble)
+roc_auc = auc(fpr, tpr)
+
+fig, ax = plt.subplots(figsize=(10, 8))
+ax.plot(fpr, tpr, color='darkorange', lw=3, 
+        label=f'Ensemble (AUC = {roc_auc:.4f})')
+ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--', 
+        label='Random Classifier (AUC = 0.50)')
+ax.set_xlim([0.0, 1.0])
+ax.set_ylim([0.0, 1.05])
+ax.set_xlabel('False Positive Rate', fontsize=14, fontweight='bold')
+ax.set_ylabel('True Positive Rate', fontsize=14, fontweight='bold')
+ax.set_title('ROC Curve - Model V8 Production\nLightGBM (48.5%) + XGBoost (51.5%)', 
+             fontsize=16, fontweight='bold', pad=20)
+ax.legend(loc="lower right", fontsize=12)
+ax.grid(True, alpha=0.3)
+
+# Adicionar ponto ótimo
+optimal_idx = np.argmax(tpr - fpr)
+optimal_threshold = _[optimal_idx]
+ax.plot(fpr[optimal_idx], tpr[optimal_idx], 'ro', markersize=10, 
+        label=f'Optimal Point (threshold={optimal_threshold:.3f})')
+ax.legend(loc="lower right", fontsize=11)
+
+plt.tight_layout()
+plt.savefig('visualizations/roc_curve_v8.png', dpi=300, bbox_inches='tight')
+plt.close()
+print("      ✓ visualizations/roc_curve_v8.png")
+
+# ----------------------------------------------------------------------------
+# GRÁFICO 3: PRECISION-RECALL CURVE
+# ----------------------------------------------------------------------------
+print("   [3/7] Gerando Precision-Recall Curve...")
+precision, recall, thresholds_pr = precision_recall_curve(y_test_final, y_pred_ensemble)
+pr_auc = auc(recall, precision)
+
+fig, ax = plt.subplots(figsize=(10, 8))
+ax.plot(recall, precision, color='blue', lw=3, 
+        label=f'Ensemble (AUC = {pr_auc:.4f})')
+ax.axhline(y=y_test_final.mean(), color='red', linestyle='--', lw=2,
+           label=f'Baseline (taxa conversão = {y_test_final.mean():.2%})')
+ax.set_xlim([0.0, 1.0])
+ax.set_ylim([0.0, 1.05])
+ax.set_xlabel('Recall', fontsize=14, fontweight='bold')
+ax.set_ylabel('Precision', fontsize=14, fontweight='bold')
+ax.set_title('Precision-Recall Curve - Model V8 Production\nClasse 1 (Conversão)', 
+             fontsize=16, fontweight='bold', pad=20)
+ax.legend(loc="upper right", fontsize=12)
+ax.grid(True, alpha=0.3)
+
+# Adicionar ponto F1 máximo
+f1_scores = 2 * (precision * recall) / (precision + recall + 1e-10)
+best_f1_idx = np.argmax(f1_scores)
+ax.plot(recall[best_f1_idx], precision[best_f1_idx], 'ro', markersize=10,
+        label=f'Best F1 = {f1_scores[best_f1_idx]:.4f}')
+ax.legend(loc="upper right", fontsize=11)
+
+plt.tight_layout()
+plt.savefig('visualizations/precision_recall_curve_v8.png', dpi=300, bbox_inches='tight')
+plt.close()
+print("      ✓ visualizations/precision_recall_curve_v8.png")
+
+# ----------------------------------------------------------------------------
+# GRÁFICO 4: FEATURE IMPORTANCE (TOP 20)
+# ----------------------------------------------------------------------------
+print("   [4/7] Gerando Feature Importance...")
+# Combinar importâncias dos dois modelos
+lgb_importance = lgb_model.feature_importance(importance_type='gain')
+xgb_importance = xgb_model.get_score(importance_type='gain')
+
+# Converter XGBoost para array
+xgb_importance_array = np.zeros(len(feature_cols))
+for i, feat in enumerate(feature_cols):
+    feat_clean = feat.replace('[', '_').replace(']', '_').replace('<', '_').replace('>', '_')
+    if feat_clean in xgb_importance:
+        xgb_importance_array[i] = xgb_importance[feat_clean]
+
+# Combinar com pesos do ensemble
+combined_importance = w_lgb * lgb_importance + w_xgb * xgb_importance_array
+
+# Criar DataFrame
+importance_df = pd.DataFrame({
+    'feature': feature_cols,
+    'importance': combined_importance
+}).sort_values('importance', ascending=False).head(20)
+
+fig, ax = plt.subplots(figsize=(12, 10))
+colors = plt.cm.viridis(np.linspace(0, 1, len(importance_df)))
+bars = ax.barh(range(len(importance_df)), importance_df['importance'], color=colors)
+ax.set_yticks(range(len(importance_df)))
+ax.set_yticklabels(importance_df['feature'])
+ax.invert_yaxis()
+ax.set_xlabel('Importância (Gain)', fontsize=14, fontweight='bold')
+ax.set_title('Top 20 Features Mais Importantes - Model V8\nEnsemble LightGBM + XGBoost', 
+             fontsize=16, fontweight='bold', pad=20)
+ax.grid(axis='x', alpha=0.3)
+
+# Adicionar valores nas barras
+for i, (bar, val) in enumerate(zip(bars, importance_df['importance'])):
+    ax.text(val, i, f' {val:.0f}', va='center', fontsize=10)
+
+plt.tight_layout()
+plt.savefig('visualizations/feature_importance_v8.png', dpi=300, bbox_inches='tight')
+plt.close()
+print("      ✓ visualizations/feature_importance_v8.png")
+
+# ----------------------------------------------------------------------------
+# GRÁFICO 5: DISTRIBUIÇÃO DE PROBABILIDADES
+# ----------------------------------------------------------------------------
+print("   [5/7] Gerando Distribuição de Probabilidades...")
+fig, axes = plt.subplots(2, 1, figsize=(12, 10))
+
+# Subplot 1: Histograma
+axes[0].hist(y_pred_ensemble[y_test_final == 0], bins=50, alpha=0.6, 
+             label='Classe 0 (Não Conversão)', color='blue', edgecolor='black')
+axes[0].hist(y_pred_ensemble[y_test_final == 1], bins=50, alpha=0.6, 
+             label='Classe 1 (Conversão)', color='red', edgecolor='black')
+axes[0].axvline(x=0.5, color='green', linestyle='--', lw=2, 
+                label='Threshold padrão (0.5)')
+axes[0].set_xlabel('Probabilidade Predita', fontsize=12, fontweight='bold')
+axes[0].set_ylabel('Frequência', fontsize=12, fontweight='bold')
+axes[0].set_title('Distribuição das Probabilidades Preditas por Classe', 
+                  fontsize=14, fontweight='bold')
+axes[0].legend(fontsize=11)
+axes[0].grid(True, alpha=0.3)
+
+# Subplot 2: Density plot
+from scipy.stats import gaussian_kde
+kde_0 = gaussian_kde(y_pred_ensemble[y_test_final == 0])
+kde_1 = gaussian_kde(y_pred_ensemble[y_test_final == 1])
+x_range = np.linspace(0, 1, 1000)
+axes[1].plot(x_range, kde_0(x_range), label='Classe 0 (Não Conversão)', 
+             color='blue', lw=3)
+axes[1].plot(x_range, kde_1(x_range), label='Classe 1 (Conversão)', 
+             color='red', lw=3)
+axes[1].fill_between(x_range, kde_0(x_range), alpha=0.3, color='blue')
+axes[1].fill_between(x_range, kde_1(x_range), alpha=0.3, color='red')
+axes[1].axvline(x=0.5, color='green', linestyle='--', lw=2, 
+                label='Threshold padrão (0.5)')
+axes[1].set_xlabel('Probabilidade Predita', fontsize=12, fontweight='bold')
+axes[1].set_ylabel('Densidade', fontsize=12, fontweight='bold')
+axes[1].set_title('Densidade de Probabilidade (KDE)', fontsize=14, fontweight='bold')
+axes[1].legend(fontsize=11)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('visualizations/probability_distribution_v8.png', dpi=300, bbox_inches='tight')
+plt.close()
+print("      ✓ visualizations/probability_distribution_v8.png")
+
+# ----------------------------------------------------------------------------
+# GRÁFICO 6: THRESHOLD ANALYSIS
+# ----------------------------------------------------------------------------
+print("   [6/7] Gerando Threshold Analysis...")
+thresholds_test = np.linspace(0, 1, 100)
+f1_scores_test = []
+precision_scores = []
+recall_scores = []
+
+for thresh in thresholds_test:
+    y_pred_thresh = (y_pred_ensemble > thresh).astype(int)
+    f1 = f1_score(y_test_final, y_pred_thresh, pos_label=1, zero_division=0)
+    f1_scores_test.append(f1)
+    
+    tp = ((y_pred_thresh == 1) & (y_test_final == 1)).sum()
+    fp = ((y_pred_thresh == 1) & (y_test_final == 0)).sum()
+    fn = ((y_pred_thresh == 0) & (y_test_final == 1)).sum()
+    
+    prec = tp / (tp + fp) if (tp + fp) > 0 else 0
+    rec = tp / (tp + fn) if (tp + fn) > 0 else 0
+    
+    precision_scores.append(prec)
+    recall_scores.append(rec)
+
+fig, ax = plt.subplots(figsize=(12, 8))
+ax.plot(thresholds_test, f1_scores_test, label='F1-Score', color='blue', lw=3)
+ax.plot(thresholds_test, precision_scores, label='Precision', color='green', lw=2)
+ax.plot(thresholds_test, recall_scores, label='Recall', color='orange', lw=2)
+
+# Marcar threshold ótimo
+best_threshold = thresholds_test[np.argmax(f1_scores_test)]
+best_f1 = max(f1_scores_test)
+ax.axvline(x=best_threshold, color='red', linestyle='--', lw=2,
+           label=f'Threshold Ótimo ({best_threshold:.3f})')
+ax.plot(best_threshold, best_f1, 'ro', markersize=12)
+
+ax.set_xlabel('Threshold', fontsize=14, fontweight='bold')
+ax.set_ylabel('Score', fontsize=14, fontweight='bold')
+ax.set_title('Análise de Threshold - Model V8 Production\nPrecision, Recall e F1-Score vs Threshold', 
+             fontsize=16, fontweight='bold', pad=20)
+ax.legend(fontsize=12, loc='best')
+ax.grid(True, alpha=0.3)
+ax.set_xlim([0, 1])
+ax.set_ylim([0, 1])
+
+plt.tight_layout()
+plt.savefig('visualizations/threshold_analysis_v8.png', dpi=300, bbox_inches='tight')
+plt.close()
+print("      ✓ visualizations/threshold_analysis_v8.png")
+
+# ----------------------------------------------------------------------------
+# GRÁFICO 7: CROSS-VALIDATION RESULTS
+# ----------------------------------------------------------------------------
+print("   [7/7] Gerando Cross-Validation Results...")
+fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+
+# Subplot 1: AUC por fold
+axes[0, 0].plot(fold_df['fold'], fold_df['auc_ensemble'], 
+                marker='o', linewidth=2, markersize=10, color='blue')
+axes[0, 0].axhline(y=fold_df['auc_ensemble'].mean(), color='red', 
+                   linestyle='--', lw=2, label=f"Média: {fold_df['auc_ensemble'].mean():.4f}")
+axes[0, 0].fill_between(fold_df['fold'], 
+                        fold_df['auc_ensemble'].mean() - fold_df['auc_ensemble'].std(),
+                        fold_df['auc_ensemble'].mean() + fold_df['auc_ensemble'].std(),
+                        alpha=0.2, color='red')
+axes[0, 0].set_xlabel('Fold', fontsize=12, fontweight='bold')
+axes[0, 0].set_ylabel('AUC', fontsize=12, fontweight='bold')
+axes[0, 0].set_title('ROC-AUC por Fold', fontsize=14, fontweight='bold')
+axes[0, 0].legend(fontsize=11)
+axes[0, 0].grid(True, alpha=0.3)
+axes[0, 0].set_ylim([0.90, 1.0])
+
+# Subplot 2: F1-Macro por fold
+axes[0, 1].plot(fold_df['fold'], fold_df['f1_macro'], 
+                marker='s', linewidth=2, markersize=10, color='green')
+axes[0, 1].axhline(y=fold_df['f1_macro'].mean(), color='red', 
+                   linestyle='--', lw=2, label=f"Média: {fold_df['f1_macro'].mean():.4f}")
+axes[0, 1].fill_between(fold_df['fold'], 
+                        fold_df['f1_macro'].mean() - fold_df['f1_macro'].std(),
+                        fold_df['f1_macro'].mean() + fold_df['f1_macro'].std(),
+                        alpha=0.2, color='red')
+axes[0, 1].set_xlabel('Fold', fontsize=12, fontweight='bold')
+axes[0, 1].set_ylabel('F1-Macro', fontsize=12, fontweight='bold')
+axes[0, 1].set_title('F1-Macro por Fold', fontsize=14, fontweight='bold')
+axes[0, 1].legend(fontsize=11)
+axes[0, 1].grid(True, alpha=0.3)
+axes[0, 1].set_ylim([0.70, 0.80])
+
+# Subplot 3: F1 por classe
+x = np.arange(len(fold_df))
+width = 0.35
+axes[1, 0].bar(x - width/2, fold_df['f1_class_0'], width, 
+               label='Classe 0', color='blue', alpha=0.7)
+axes[1, 0].bar(x + width/2, fold_df['f1_class_1'], width, 
+               label='Classe 1', color='red', alpha=0.7)
+axes[1, 0].set_xlabel('Fold', fontsize=12, fontweight='bold')
+axes[1, 0].set_ylabel('F1-Score', fontsize=12, fontweight='bold')
+axes[1, 0].set_title('F1-Score por Classe e Fold', fontsize=14, fontweight='bold')
+axes[1, 0].set_xticks(x)
+axes[1, 0].set_xticklabels(fold_df['fold'])
+axes[1, 0].legend(fontsize=11)
+axes[1, 0].grid(axis='y', alpha=0.3)
+
+# Subplot 4: Comparação LightGBM vs XGBoost vs Ensemble
+axes[1, 1].plot(fold_df['fold'], fold_df['auc_lgb'], 
+                marker='o', linewidth=2, markersize=8, label='LightGBM', color='purple')
+axes[1, 1].plot(fold_df['fold'], fold_df['auc_xgb'], 
+                marker='s', linewidth=2, markersize=8, label='XGBoost', color='orange')
+axes[1, 1].plot(fold_df['fold'], fold_df['auc_ensemble'], 
+                marker='^', linewidth=2, markersize=8, label='Ensemble', color='green')
+axes[1, 1].set_xlabel('Fold', fontsize=12, fontweight='bold')
+axes[1, 1].set_ylabel('AUC', fontsize=12, fontweight='bold')
+axes[1, 1].set_title('Comparação Modelos: LightGBM vs XGBoost vs Ensemble', 
+                     fontsize=14, fontweight='bold')
+axes[1, 1].legend(fontsize=11)
+axes[1, 1].grid(True, alpha=0.3)
+axes[1, 1].set_ylim([0.90, 1.0])
+
+plt.suptitle('Resultados Cross-Validation (TimeSeriesSplit - 5 Folds)', 
+             fontsize=18, fontweight='bold', y=0.995)
+plt.tight_layout()
+plt.savefig('visualizations/cross_validation_results_v8.png', dpi=300, bbox_inches='tight')
+plt.close()
+print("      ✓ visualizations/cross_validation_results_v8.png")
+
+print()
+print("="*80)
+print("✅ VISUALIZAÇÕES GERADAS COM SUCESSO!")
+print("="*80)
+print()
+print("📁 Arquivos salvos em: visualizations/")
+print("   ✓ confusion_matrix_v8.png")
+print("   ✓ roc_curve_v8.png")
+print("   ✓ precision_recall_curve_v8.png")
+print("   ✓ feature_importance_v8.png")
+print("   ✓ probability_distribution_v8.png")
+print("   ✓ threshold_analysis_v8.png")
+print("   ✓ cross_validation_results_v8.png")
+print()
 print("="*80)
