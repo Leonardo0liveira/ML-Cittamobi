@@ -64,21 +64,45 @@ print("="*80)
 print()
 
 # ============================================================================
-# 1. CARREGAR DADOS
+# 1. CARREGAR DADOS (BigQuery ou CSV)
 # ============================================================================
-print("📊 1. Carregando dados do BigQuery...")
-client = bigquery.Client(project='proj-ml-469320')
+print("📊 1. Carregando dados...")
 
-query = """
-SELECT * FROM `proj-ml-469320.app_cittamobi.dataset-updated`
-WHERE target IS NOT NULL
-LIMIT 300000
-"""
+# ============================================================================
+# CONFIGURAÇÃO: Escolha a fonte de dados
+# ============================================================================
+USE_CSV = True  # ⚠️ MUDE PARA False PARA USAR BIGQUERY
+CSV_PATH = 'dataset-updated.csv'  # ⚠️ AJUSTE O CAMINHO
 
-print("   ⏳ Carregando 300K registros...")
-df = client.query(query).to_dataframe()
-print(f"   ✓ Dataset carregado: {len(df):,} registros")
-print(f"   ✓ Conversões: {(df['target']==1).sum():,} ({(df['target']==1).sum()/len(df):.2%})")
+if USE_CSV:
+    print(f"   📂 Carregando do CSV: {CSV_PATH}")
+    df = pd.read_csv(CSV_PATH)
+    
+    # Filtrar apenas registros com target válido
+    df = df[df['target'].notna()].copy()
+    
+    # Limitar tamanho se necessário (para teste rápido)
+    # REMOVA esta linha para usar TODA a base
+    #df = df.head(300000)  # ⚠️ REMOVA ESTA LINHA PARA CARREGAR TUDO
+    
+    print(f"   ✓ Dataset carregado: {len(df):,} registros")
+    print(f"   ✓ Conversões: {(df['target']==1).sum():,} ({(df['target']==1).sum()/len(df):.2%})")
+    
+else:
+    print("   ☁️  Carregando do BigQuery...")
+    client = bigquery.Client(project='proj-ml-469320')
+    
+    query = """
+    SELECT * FROM `proj-ml-469320.app_cittamobi.dataset-updated`
+    WHERE target IS NOT NULL
+    LIMIT 300000
+    """
+    
+    print("   ⏳ Carregando 300K registros...")
+    df = client.query(query).to_dataframe()
+    print(f"   ✓ Dataset carregado: {len(df):,} registros")
+    print(f"   ✓ Conversões: {(df['target']==1).sum():,} ({(df['target']==1).sum()/len(df):.2%})")
+
 print()
 
 # ============================================================================
