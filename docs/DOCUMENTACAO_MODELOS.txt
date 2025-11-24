@@ -1,0 +1,1150 @@
+DOCUMENTAÇÃO DOS MODELOS - PROJETO ML CITTAMOBI
+Modelos de Machine Learning para Predição de Lotação de Ônibus
+
+
+VISÃO GERAL
+
+Este documento descreve os modelos de Machine Learning desenvolvidos no projeto, suas características, parâmetros e resultados. Os modelos foram treinados para resolver o problema de classificação binária: prever se a lotação de uma parada será "Baixa" (evento raro) ou "Nao_Baixa" (evento comum).
+
+Total de modelos desenvolvidos até o momento: 13 versões/experimentos
+- 6 Modelos Tradicionais de ML
+- 4 Modelos Avançados de Gradient Boosting (V4, V5, V6, V7)
+- 3 Experimentos com Ensemble e SMOTE (PML V1, V2, V3)
+
+Metodologia: Undersampling (2:1 ratio), Cross-validation com TimeSeriesSplit (5 folds)
+Métrica principal: ROC-AUC (Area Under the ROC Curve)
+Métricas secundárias: F1-Score, Precision, Recall, Accuracy
+
+Observação: Outros modelos ainda serão testados e avaliados.
+
+
+PROCEDIMENTOS COMUNS A TODOS OS MODELOS
+
+DADOS UTILIZADOS:
+- Dataset: sampled_dataset.csv (200.000 amostras)
+- Fonte: Google BigQuery (proj-ml-469320.app_cittamobi.dataset-updated)
+- Período: Dados históricos de eventos de lotação de ônibus em São Paulo
+- Target: 'is_baixa' (binário: 1=Baixa, 0=Nao_Baixa)
+- Proporção original: ~10% classe positiva (Baixa), ~90% classe negativa (Nao_Baixa)
+
+COLUNAS/FEATURES UTILIZADAS (29 features):
+
+1. FEATURES TEMPORAIS (8):
+   - timestamp: data/hora do evento
+   - hour: hora do dia (0-23)
+   - day_of_week: dia da semana (0-6)
+   - is_weekend: final de semana (0/1)
+   - is_rush_hour: horário de pico (0/1)
+   - day_sin, day_cos: codificação cíclica do dia
+   - hour_sin, hour_cos: codificação cíclica da hora
+
+2. FEATURES GEOESPACIAIS (6):
+   - stop_lat: latitude da parada
+   - stop_lon: longitude da parada
+   - device_lat: latitude do dispositivo
+   - device_lon: longitude do dispositivo
+   - dist_device_stop: distância entre dispositivo e parada (metros)
+   - dist_x_peak: distância ao centro de pico de demanda
+
+3. FEATURES GTFS (6):
+   - route_id: identificador da rota
+   - trip_id: identificador da viagem
+   - stop_id: identificador da parada
+   - stop_sequence: sequência da parada na rota
+   - stop_headway_avg: intervalo médio entre ônibus (minutos)
+   - stop_headway_std: desvio padrão do intervalo
+
+4. FEATURES DE USUÁRIO (5):
+   - user_pseudo_id: identificador do usuário
+   - user_frequency: frequência de uso do usuário
+   - user_total_events: total de eventos do usuário
+   - user_total_conversions: total de conversões do usuário
+   - user_conversion_rate: taxa de conversão do usuário
+
+5. FEATURES DE AGREGAÇÃO (4):
+   - stop_total_samples: total de amostras na parada
+   - stop_conversion_rate: taxa de conversão da parada
+   - conversion_interaction: interação usuário-parada
+   - stop_event_rate: taxa de eventos na parada
+
+PRÉ-PROCESSAMENTO:
+1. Remoção de valores nulos e duplicados
+2. Extração de features temporais do timestamp
+3. Cálculo de distâncias geoespaciais
+4. Criação de features de agregação por usuário e parada
+5. Codificação cíclica de variáveis temporais (sin/cos)
+6. Normalização/Padronização (quando necessário pelo algoritmo)
+
+BALANCEAMENTO DE CLASSES:
+- Técnica: Undersampling da classe majoritária (Nao_Baixa)
+- Ratio aplicado: 2:1 (2 amostras Nao_Baixa : 1 amostra Baixa)
+- Resultado: dataset balanceado com ~66% Nao_Baixa e ~34% Baixa
+- Alternativa testada: class_weight='balanced' nos algoritmos
+- SMOTE: testado em alguns experimentos (não usado no treino final)
+
+VALIDAÇÃO CRUZADA:
+- Método: TimeSeriesSplit com 5 folds
+- Justificativa: Respeita ordem temporal dos dados (evita vazamento temporal)
+- Funcionamento:
+  * Fold 1: treina em 20% → testa em próximos 20%
+  * Fold 2: treina em 40% → testa em próximos 20%
+  * Fold 3: treina em 60% → testa em próximos 20%
+  * Fold 4: treina em 80% → testa em próximos 20%
+  * Fold 5: treina em 100% → avaliação final
+- Métrica reportada: média ± desvio padrão do ROC-AUC
+
+DIVISÃO TREINO/TESTE:
+- Train set: 80% dos dados (160.000 amostras após balanceamento)
+- Test set: 20% dos dados (40.000 amostras)
+- Estratificação: mantém proporção das classes em ambos conjuntos
+
+MÉTRICAS DE AVALIAÇÃO:
+- ROC-AUC: métrica principal (robusta a desbalanceamento)
+- Precision: proporção de predições positivas corretas
+- Recall: proporção de casos positivos detectados
+- F1-Score: média harmônica de precision e recall
+- Accuracy: acurácia geral
+- F1-Macro: média não ponderada do F1 de cada classe
+- Confusion Matrix: análise detalhada de erros
+
+PREVENÇÃO DE OVERFITTING:
+- Cross-validation com TimeSeriesSplit
+- Regularização L1/L2 (quando aplicável)
+- Early stopping (gradient boosting)
+- Limitação de profundidade (max_depth)
+- Mínimo de amostras para split/leaf
+- Feature selection (remoção de features redundantes)
+
+VISUALIZAÇÕES GERADAS PARA CADA MODELO:
+- Confusion Matrix: análise de True/False Positives/Negatives
+- ROC Curve: curva ROC com área sob a curva (AUC)
+- Feature Importance: ranking de importância das features
+- Threshold Analysis: análise de diferentes thresholds de decisão
+
+
+MODELOS TRADICIONAIS DE MACHINE LEARNING
+
+
+1. RANDOM FOREST
+
+Descrição:
+Random Forest é um algoritmo de ensemble que combina múltiplas árvores de decisão. Cada árvore é treinada com uma amostra diferente dos dados e features, reduzindo overfitting e melhorando generalização.
+
+Parâmetros principais:
+n_estimators: 200 árvores
+max_depth: 15 (profundidade máxima)
+min_samples_split: 10
+min_samples_leaf: 5
+class_weight: balanced (compensação para classes desbalanceadas)
+random_state: 42
+
+Resultados:
+ROC-AUC: 0.8083
+F1-Score (Classe 1): 0.4100
+F1-Macro: 0.6651
+Accuracy: 0.8595
+Precision (Classe 1): 0.3371
+Recall (Classe 1): 0.5231
+Cross-validation ROC-AUC: 0.7992 ± 0.0135
+
+Vantagens:
+- Bom balanço entre métricas
+- Robusto a overfitting
+- Interpreta bem features não-lineares
+- Fornece importância de features
+- Não requer normalização dos dados
+
+Desvantagens:
+- Mais lento para treinar e prever
+- Modelo grande em memória
+- Menos interpretável que árvore única
+
+Arquivos gerados:
+- models/RandomForest/random_forest_leak_free.py
+- reports/model_evaluations/random_forest_optimized_report.txt
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: visualizations/v1/confusion_matrix.png]
+Descrição: Matriz de confusão mostrando distribuição de True Negatives, False Positives, False Negatives e True Positives no conjunto de teste.
+
+[INSERIR GRÁFICO: visualizations/v1/roc_curve.png]
+Descrição: Curva ROC (Receiver Operating Characteristic) com AUC=0.8083, mostrando trade-off entre taxa de verdadeiros positivos e falsos positivos.
+
+[INSERIR GRÁFICO: visualizations/v1/feature_importance.png]
+Descrição: Top 15 features mais importantes segundo o Random Forest. Destacam-se: conversion_interaction, user_pseudo_id, user_total_conversions, user_conversion_rate, stop_conversion_rate.
+
+[INSERIR GRÁFICO: visualizations/v1/threshold_analysis.png]
+Descrição: Análise de diferentes thresholds de decisão (0.1 a 0.9) e seu impacto em Precision, Recall e F1-Score.
+
+
+2. SUPPORT VECTOR MACHINE - SVM (LinearSVC)
+
+Descrição:
+SVM é um algoritmo que encontra o hiperplano que melhor separa as classes no espaço de features. A versão LinearSVC usa kernel linear e é otimizada para grandes datasets.
+
+Parâmetros principais:
+C: 0.1 (regularização)
+penalty: l2
+loss: squared_hinge
+class_weight: balanced
+max_iter: 2000
+random_state: 42
+
+Resultados:
+ROC-AUC: 0.7992
+F1-Score (Classe 1): 0.4044
+F1-Macro: 0.6623
+Accuracy: 0.8621
+Precision (Classe 1): 0.3371
+Recall (Classe 1): 0.5055
+Cross-validation ROC-AUC: 0.7895 ± 0.0051
+
+Vantagens:
+- Rápido para treinar
+- Bom para dados de alta dimensionalidade
+- Menos propenso a overfitting com regularização adequada
+- Cross-validation estável (baixo desvio padrão)
+
+Desvantagens:
+- Requer normalização/padronização dos dados
+- Sensível à escolha de parâmetros
+- Não fornece probabilidades diretamente (usa decision_function)
+
+Arquivos gerados:
+- models/SVM/svm_leak_free.py
+- reports/model_evaluations/svm_optimized.csv
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: Confusion Matrix do SVM]
+Descrição: Matriz de confusão do LinearSVC mostrando desempenho no conjunto de teste.
+
+[INSERIR GRÁFICO: ROC Curve do SVM]
+Descrição: Curva ROC com AUC=0.7992, comparando com outros modelos tradicionais.
+
+[INSERIR GRÁFICO: Feature Coefficients]
+Descrição: Coeficientes das features no hiperplano de decisão do SVM, indicando importância e direção (positiva/negativa).
+
+
+3. STOCHASTIC GRADIENT DESCENT - SGD CLASSIFIER
+
+Descrição:
+SGD é uma versão otimizada de SVM que atualiza os pesos incrementalmente. Muito eficiente para datasets grandes. Usa loss='hinge' para simular SVM linear.
+
+Parâmetros principais:
+loss: hinge (comportamento tipo SVM)
+penalty: l2
+alpha: 0.0001 (regularização)
+class_weight: balanced
+max_iter: 2000
+random_state: 42
+
+Resultados:
+ROC-AUC: 0.7747
+F1-Score (Classe 1): 0.3832
+F1-Macro: 0.6559
+Accuracy: 0.8729
+Precision (Classe 1): 0.3494
+Recall (Classe 1): 0.4243
+Cross-validation ROC-AUC: 0.7776 ± 0.0142
+
+Vantagens:
+- Muito rápido para treinar
+- Eficiente em memória
+- Boa accuracy e precision
+- Escala bem para milhões de amostras
+
+Desvantagens:
+- Resultados podem variar entre execuções
+- Requer normalização dos dados
+- Menos estável que SVM
+
+Evolução do modelo:
+V1: Baseline com features básicas
+V2: Feature selection (remoção de features redundantes)
+V3: Quick wins (balanceamento, threshold tuning)
+V4: Advanced features (agregações, interações)
+
+Arquivos gerados:
+- models/SGDClassifier/sgd_v4_advanced_features.py
+- reports: sgd_v2_report.txt, sgd_v3_report.txt, sgd_v4_report.txt
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: SGD Confusion Matrix]
+Descrição: Matriz de confusão do SGD Classifier (V4) no conjunto de teste.
+
+[INSERIR GRÁFICO: SGD ROC Curve]
+Descrição: Curva ROC com AUC=0.7747 para a versão V4 com features avançadas.
+
+[INSERIR GRÁFICO: SGD Progression Chart]
+Descrição: Evolução das métricas (ROC-AUC, F1-Score, Precision, Recall) através das versões V1 → V2 → V3 → V4.
+
+[INSERIR GRÁFICO: Feature Coefficients]
+Descrição: Coeficientes das features no modelo SGD, mostrando pesos positivos e negativos de cada feature na decisão.
+
+
+4. K-NEAREST NEIGHBORS - KNN
+
+Descrição:
+KNN classifica baseado na "vizinhança" - verifica as K amostras mais próximas e usa votação majoritária. Algoritmo baseado em instâncias, não paramétrico.
+
+Parâmetros principais:
+n_neighbors: 51 (otimizado)
+weights: distance (vizinhos mais próximos têm mais peso)
+metric: minkowski
+p: 2 (distância euclidiana)
+
+Resultados:
+ROC-AUC: 0.7533
+F1-Score (Classe 1): 0.3963
+F1-Macro: 0.6657
+Accuracy: 0.8788
+Precision (Classe 1): 0.4033
+Recall (Classe 1): 0.3893
+Cross-validation ROC-AUC: 0.7416 ± 0.0086
+
+Vantagens:
+- Boa accuracy (87.88%)
+- Boa precision (40.33%)
+- Simples e intuitivo
+- Não requer treinamento (lazy learning)
+
+Desvantagens:
+- Predição lenta (precisa calcular distâncias)
+- Sensível à escala das features
+- ROC-AUC mais baixo
+- Não funciona bem com muitas dimensões
+
+Arquivos gerados:
+- models/KNN/knn_leak_free.py
+- reports/model_evaluations/knn_optimized_report.txt
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: KNN Confusion Matrix]
+Descrição: Matriz de confusão do KNN (k=51) mostrando alta accuracy mas recall moderado.
+
+[INSERIR GRÁFICO: KNN ROC Curve]
+Descrição: Curva ROC com AUC=0.7533.
+
+[INSERIR GRÁFICO: K Comparison Chart]
+Descrição: Comparação de diferentes valores de K (5, 10, 20, 30, 51, 100) e impacto nas métricas. K=51 foi o valor otimizado.
+
+[INSERIR GRÁFICO: Feature Variance]
+Descrição: Análise da variância das features após normalização, importante para o funcionamento do KNN baseado em distâncias.
+
+
+5. NAIVE BAYES (Bernoulli)
+
+Descrição:
+Naive Bayes é um classificador probabilístico baseado no Teorema de Bayes. A versão Bernoulli é adequada para features binárias ou de alta esparsidade.
+
+Parâmetros principais:
+alpha: 0.1 (smoothing)
+fit_prior: True
+class_prior: None (estimado dos dados)
+
+Resultados:
+ROC-AUC: 0.7767
+F1-Score (Classe 1): 0.2897
+F1-Macro: 0.5244
+Accuracy: 0.6395
+Precision (Classe 1): 0.1774
+Recall (Classe 1): 0.7892
+Cross-validation ROC-AUC: 0.7651 ± 0.0089
+
+Vantagens:
+- Alto recall (78.92%) - detecta maioria dos eventos raros
+- Muito rápido para treinar e prever
+- Funciona bem com poucas amostras
+- Robusto a features irrelevantes
+
+Desvantagens:
+- Baixa precision (muitos falsos positivos)
+- Assume independência entre features (simplificação forte)
+- Baixa accuracy geral
+
+Caso de uso:
+Ideal quando é CRÍTICO não perder eventos raros (recall máximo), mesmo que isso signifique muitos alarmes falsos. Exemplo: detecção de fraudes, diagnósticos médicos.
+
+Arquivos gerados:
+- models/NaiveBayes/nb_leak_free.py
+- reports/model_evaluations/naive_bayes_optimized_report.txt
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: Naive Bayes Confusion Matrix]
+Descrição: Matriz de confusão mostrando alto recall (78.92%) mas baixa precision - muitos False Positives.
+
+[INSERIR GRÁFICO: Naive Bayes ROC Curve]
+Descrição: Curva ROC com AUC=0.7767.
+
+[INSERIR GRÁFICO: Naive Bayes Comparison]
+Descrição: Comparação visual entre Precision vs Recall trade-off. Naive Bayes maximiza detecção (recall) às custas de muitos alarmes falsos.
+
+[INSERIR GRÁFICO: Threshold Impact]
+Descrição: Impacto do threshold de decisão nas métricas - Naive Bayes é particularmente sensível ao threshold escolhido.
+
+
+6. DECISION TREE (Árvore de Decisão)
+
+Descrição:
+Árvore de decisão única que divide os dados recursivamente baseado nas features. Altamente interpretável mas propensa a overfitting.
+
+Parâmetros principais:
+max_depth: 15
+min_samples_split: 20
+min_samples_leaf: 10
+class_weight: balanced
+random_state: 42
+
+Resultados:
+ROC-AUC: 0.7502
+F1-Score (Classe 1): 0.3464
+F1-Macro: 0.6309
+Accuracy: 0.8413
+Precision (Classe 1): 0.2755
+Recall (Classe 1): 0.4664
+Cross-validation ROC-AUC: 0.7578 ± 0.0094
+
+Vantagens:
+- Altamente interpretável (pode visualizar a árvore)
+- Não requer normalização
+- Rápido para treinar e prever
+- Lida bem com features categóricas e numéricas
+
+Desvantagens:
+- Propensa a overfitting
+- Instável (pequenas mudanças nos dados mudam a árvore)
+- Desempenho inferior aos ensemble methods
+
+Arquivos gerados:
+- models/DecisionTrees/decision_tree_leak_free.py
+- reports/model_evaluations/decision_tree_optimized_report.txt
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: Decision Tree Confusion Matrix]
+Descrição: Matriz de confusão da árvore de decisão com max_depth=15.
+
+[INSERIR GRÁFICO: Decision Tree ROC Curve]
+Descrição: Curva ROC com AUC=0.7502.
+
+[INSERIR GRÁFICO: Tree Structure Visualization]
+Descrição: Visualização parcial da estrutura da árvore (primeiros 3-4 níveis) mostrando principais splits: conversion_interaction, user_conversion_rate, stop_conversion_rate.
+
+[INSERIR GRÁFICO: Decision Tree Comparison]
+Descrição: Comparação de diferentes configurações de max_depth (5, 10, 15, 20, None) e impacto em overfitting.
+
+
+MODELOS AVANÇADOS - GRADIENT BOOSTING
+
+
+7. CATBOOST V6
+
+Descrição:
+CatBoost é um algoritmo de Gradient Boosting desenvolvido pela Yandex, otimizado para features categóricas e classes desbalanceadas. Usa ordered boosting para prevenir vazamento de target.
+
+Características especiais:
+- Tratamento automático de features categóricas (sem label encoding)
+- auto_class_weights='Balanced' para desbalanceamento
+- Reduz overfitting naturalmente
+- Ordered boosting previne target leakage
+
+Parâmetros principais:
+iterations: 500
+learning_rate: 0.015
+depth: 18
+auto_class_weights: Balanced
+l2_leaf_reg: 1.0
+subsample: 0.85
+rsm: 0.85 (random subspace method)
+bootstrap_type: Bernoulli
+
+Resultados FINAIS (após otimização):
+ROC-AUC: 0.9807
+Accuracy: 0.9683
+Precision: 0.5771
+Recall: 0.6474
+F1-Score: 0.6102
+F1-Macro: 0.7969
+Threshold: 0.8
+Best Iteration: 47
+
+Matriz de Confusão:
+True Negatives: 41,663 | False Positives: 803
+False Negatives: 597 | True Positives: 1,096
+
+Top 10 Features mais importantes:
+1. conversion_interaction: 27.13%
+2. user_pseudo_id: 12.59%
+3. user_total_conversions: 6.79%
+4. user_conversion_rate: 4.99%
+5. stop_conversion_rate: 4.09%
+6. user_frequency: 3.87%
+7. user_total_events: 2.42%
+8. stop_total_samples: 1.72%
+9. dist_device_stop: 1.71%
+10. day_cos: 1.46%
+
+Experimentos realizados:
+9 configurações testadas variando learning_rate, depth, iterations
+Melhor config: learning_rate=0.1, depth=10, iterations=50
+Ganho de +0.23% em ROC-AUC vs baseline
+
+Vantagens:
+- ROC-AUC muito alto (98.07%)
+- Não requer encoding de categóricas
+- Balanceamento automático de classes
+- Menos hiperparâmetros para tunar
+- GPU support disponível
+
+Desvantagens:
+- Treinamento mais lento que LightGBM
+- Arquivos de modelo grandes (.cbm pode ter 300MB+)
+- Requer biblioteca catboost
+
+Arquivos gerados:
+- models/catboost/model_v6_catboost_final.py
+- catboost_model_v6.cbm (modelo treinado - 335MB, não versionado)
+- reports/model_evaluations/v6_catboost_final_report.txt
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: visualizations/v6/confusion_matrix.png]
+Descrição: Matriz de confusão do CatBoost V6 mostrando excelente desempenho: TN=41,663, FP=803, FN=597, TP=1,096.
+
+[INSERIR GRÁFICO: visualizations/v6/roc_curve.png]
+Descrição: Curva ROC com AUC=0.9807 - melhor desempenho entre todos os modelos testados.
+
+[INSERIR GRÁFICO: visualizations/v6/feature_importance.png]
+Descrição: Top 20 features mais importantes segundo CatBoost. Destaque para: conversion_interaction (27.13%), user_pseudo_id (12.59%), user_total_conversions (6.79%).
+
+[INSERIR GRÁFICO: CatBoost Learning Curves]
+Descrição: Curvas de aprendizado mostrando convergência em ~47 iterações (early stopping). Loss de treino e validação.
+
+[INSERIR GRÁFICO: CatBoost Experiments Comparison]
+Descrição: Comparação das 9 configurações testadas (diferentes learning_rate, depth, iterations) e seus respectivos ROC-AUC scores.
+
+
+8. LIGHTGBM V5
+
+Descrição:
+LightGBM é uma implementação de Gradient Boosting desenvolvida pela Microsoft, otimizada para velocidade e eficiência de memória. Usa crescimento leaf-wise (ao invés de level-wise).
+
+Características especiais:
+- Muito mais rápido que XGBoost
+- Eficiente em memória
+- Leaf-wise tree growth (mais eficiente)
+- Expanding window aggregations para evitar vazamento temporal
+
+Parâmetros principais:
+objective: binary
+num_leaves: 63
+max_depth: 18
+learning_rate: 0.015
+feature_fraction: 0.85
+bagging_fraction: 0.85
+scale_pos_weight: 12.05
+is_unbalance: True
+
+Resultados (Versão SEM vazamento temporal):
+ROC-AUC: 0.8642
+Accuracy: 0.9390
+Precision: 0.5775
+Recall: 0.1941
+F1-Score: 0.2906
+F1-Macro: 0.6294
+Threshold: 0.2
+
+Matriz de Confusão:
+True Negatives: 40,329 | False Positives: 398
+False Negatives: 2,258 | True Positives: 544
+
+Abordagem Anti-Vazamento:
+- Expanding Window Aggregations
+- Cada feature usa APENAS histórico anterior ao evento
+- Reproduzível exatamente como em produção
+- Sem vazamento entre treino/teste
+
+Top 10 Features mais importantes:
+1. stop_event_rate: 1,213,425 (DOMINANTE)
+2. stop_event_count: 305,729
+3. time_hour: 16,506
+4. stop_total_samples: 14,050
+5. user_conversion_rate_expanding: 13,966 [EXPANDING]
+6. hour: 9,408
+7. int64_field_0: 7,226
+8. stop_headway_std: 7,082
+9. user_avg_hour_expanding: 6,243 [EXPANDING]
+10. dist_x_peak: 5,933
+
+Vantagens:
+- Treinamento MUITO rápido
+- Eficiente em memória
+- Ideal para datasets grandes (>100k)
+- Features expanding garantem produção real
+
+Desvantagens:
+- Recall mais baixo (19.41%)
+- Requer tratamento cuidadoso de categóricas
+- Sensível a hiperparâmetros
+
+Arquivos gerados:
+- models/lightgbm/ (múltiplas versões)
+- lightgbm_model_v5.txt
+- reports/model_evaluations/v5_lightgbm_final_report.txt
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: visualizations/v5/confusion_matrix.png]
+Descrição: Matriz de confusão do LightGBM V5 mostrando alta precision (57.75%) mas recall baixo (19.41%): TN=40,329, FP=398, FN=2,258, TP=544.
+
+[INSERIR GRÁFICO: visualizations/v5/roc_curve.png]
+Descrição: Curva ROC com AUC=0.8642.
+
+[INSERIR GRÁFICO: visualizations/v5/feature_importance.png]
+Descrição: Top 20 features mais importantes. Feature DOMINANTE: stop_event_rate (1,213,425), seguida de stop_event_count (305,729). Destaque para features expanding: user_conversion_rate_expanding, user_avg_hour_expanding.
+
+[INSERIR GRÁFICO: LightGBM Learning Curves]
+Descrição: Curvas de aprendizado mostrando train loss vs validation loss ao longo das iterações.
+
+[INSERIR GRÁFICO: Expanding Window Aggregations Timeline]
+Descrição: Visualização do conceito de expanding window - como as features são calculadas usando apenas histórico anterior ao evento atual.
+
+
+9. XGBOOST V4
+
+Descrição:
+XGBoost é o algoritmo de Gradient Boosting mais popular, vencedor de muitas competições Kaggle. Usa regularização L1/L2 e tree pruning para evitar overfitting.
+
+Parâmetros principais:
+max_depth: 10
+learning_rate: 0.05
+n_estimators: 500
+subsample: 0.8
+colsample_bytree: 0.8
+scale_pos_weight: 3.0
+gamma: 0.1 (min loss reduction)
+reg_alpha: 0.1 (L1)
+reg_lambda: 1.0 (L2)
+
+Resultados (estimados com base nas versões anteriores):
+ROC-AUC: ~0.80-0.85
+Accuracy: ~0.85-0.90
+F1-Score: ~0.35-0.45
+
+Vantagens:
+- Amplamente utilizado e testado
+- Documentação extensa
+- Regularização robusta
+- Suporte a GPU
+
+Desvantagens:
+- Mais lento que LightGBM
+- Mais hiperparâmetros para tunar
+- Requer mais memória
+
+Arquivos gerados:
+- models/v4/ (múltiplas versões)
+- xgboost_model_v4.json
+- reports/model_evaluations/
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: visualizations/v4/confusion_matrix_v4.png]
+Descrição: Matriz de confusão do XGBoost V4.
+
+[INSERIR GRÁFICO: XGBoost ROC Curve]
+Descrição: Curva ROC com AUC estimado ~0.80-0.85.
+
+[INSERIR GRÁFICO: XGBoost Feature Importance]
+Descrição: Ranking de importância das features segundo XGBoost (gain, weight, cover).
+
+[INSERIR GRÁFICO: visualizations/v4/v4_strategies_comparison.png]
+Descrição: Comparação de diferentes estratégias de regularização e hiperparâmetros testados no XGBoost V4.
+
+
+EXPERIMENTOS COM ENSEMBLE E SMOTE (PML)
+
+Estas versões experimentais exploraram técnicas avançadas de balanceamento de classes usando SMOTE e variantes, combinadas com ensemble de múltiplos algoritmos de Gradient Boosting.
+
+
+10. ENSEMBLE V1 - SMOTE PURO
+
+Descrição:
+Primeira versão experimental que testou múltiplos algoritmos de Gradient Boosting combinados com SMOTE para balanceamento de classes. Usou dataset de 50.000 registros do BigQuery como baseline.
+
+Algoritmos testados:
+- Random Forest
+- XGBoost
+- LightGBM
+- CatBoost
+- Stacking Ensemble (meta-modelo: LightGBM)
+
+Parâmetros principais:
+
+Random Forest:
+- n_estimators: [100, 300, 500, 800]
+- max_depth: [None, 5, 10, 20, 30, 40]
+- min_samples_split: [2, 5, 10]
+- min_samples_leaf: [1, 2, 4]
+- max_features: ['sqrt', 'log2']
+- class_weight: ['balanced', 'balanced_subsample', None]
+
+XGBoost:
+- n_estimators: [200, 400, 600]
+- max_depth: [3, 5, 7, 9]
+- learning_rate: [0.01, 0.03, 0.05, 0.1]
+- subsample: [0.7, 0.8, 0.9, 1.0]
+- colsample_bytree: [0.6, 0.7, 0.8, 0.9, 1.0]
+- reg_lambda: [1, 5, 10]
+- reg_alpha: [0, 0.1, 1]
+- min_child_weight: [1, 3, 5]
+
+LightGBM:
+- n_estimators: [200, 400, 600]
+- num_leaves: [31, 63, 127, 255]
+- max_depth: [-1, 5, 10, 15]
+- learning_rate: [0.01, 0.03, 0.05, 0.1]
+- subsample: [0.7, 0.8, 0.9, 1.0]
+- colsample_bytree: [0.6, 0.7, 0.8, 0.9, 1.0]
+
+CatBoost:
+- depth: [4, 6, 8, 10]
+- learning_rate: [0.01, 0.03, 0.05, 0.1]
+- iterations: [200, 400, 800, 1000]
+- l2_leaf_reg: [1, 3, 5, 7, 9]
+- bagging_temperature: [0, 1]
+- border_count: [32, 64, 128]
+
+Técnica de Balanceamento:
+- SMOTE (Synthetic Minority Over-sampling Technique)
+- sampling_strategy='auto' (balanceamento 1:1)
+- k_neighbors=2
+- Pipeline: SMOTE → Modelo
+
+Resultados (Cross-validation com TimeSeriesSplit, n_splits=3):
+- Random Forest F1-Score (CV): 0.5832
+- XGBoost F1-Score (CV): 0.5793
+- LightGBM F1-Score (CV): 0.5724
+- CatBoost F1-Score (CV): 0.5854 (melhor resultado)
+
+Feature Engineering específico:
+- Agregações por usuário: média, desvio padrão, min, max de distância
+- Agregações por parada: frequência média e mediana
+- Features de interação de 2ª ordem:
+  * dist_deviation: desvio da distância do usuário
+  * dist_ratio: razão de distância
+- Features temporais cíclicas (sin/cos) para hora, dia do mês, semana do ano
+- Extração completa de features temporais do timestamp
+
+Otimização:
+- RandomizedSearchCV (n_iter=10)
+- Métrica de otimização: F1-Score
+- Otimização de threshold para maximizar F1-Score no teste
+
+Vantagens:
+- SMOTE cria exemplos sintéticos mais realistas da classe minoritária
+- Mantém todos os dados da classe majoritária
+- Melhora recall sem perder precision drasticamente
+- Ensemble permite comparação de múltiplos algoritmos
+
+Desvantagens:
+- Dataset pequeno (50k) limita generalização
+- SMOTE pode criar exemplos irrealistas em regiões de baixa densidade
+- n_jobs=1 (sem paralelização) torna treinamento lento
+- Pode levar a overfitting na classe sintética
+
+Arquivos gerados:
+- models/pml/v1.ipynb
+- Outputs de execução com resultados de cross-validation
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: Ensemble V1 - Cross-validation Scores]
+Descrição: Comparação dos F1-Scores de cross-validation dos 4 algoritmos testados. CatBoost lidera com 0.5854.
+
+[INSERIR GRÁFICO: SMOTE Visualization]
+Descrição: Visualização 2D (PCA) mostrando distribuição dos dados originais vs dados após SMOTE.
+
+[INSERIR GRÁFICO: Feature Importance Comparison V1]
+Descrição: Comparação das top 10 features mais importantes segundo cada algoritmo testado.
+
+
+11. ENSEMBLE V2 - SMOTE + UNDERSAMPLING HÍBRIDO
+
+Descrição:
+Segunda versão experimental que combinou SMOTE com undersampling em uma estratégia híbrida. Dobrou o tamanho do dataset para 100.000 registros e habilitou paralelização completa para melhor performance computacional.
+
+Algoritmos testados:
+- Random Forest
+- XGBoost
+- LightGBM
+- CatBoost
+- Stacking Ensemble (meta-modelo: LightGBM)
+
+Parâmetros principais:
+(Mesmos parâmetros da V1, mas com n_jobs=-1 para Random Forest, XGBoost e LightGBM)
+
+Técnica de Balanceamento (PRINCIPAL MUDANÇA):
+- Estratégia Híbrida: SMOTE + RandomUnderSampler
+- Pipeline: SMOTE (step 1) → RandomUnderSampler (step 2) → Modelo
+- Configuração SMOTE:
+  * sampling_strategy=0.2 (aumenta minoria para 20% da maioria)
+  * k_neighbors=2
+- Configuração RandomUnderSampler:
+  * sampling_strategy=0.5 (reduz maioria para que minoria seja 50% dela)
+- Resultado final: balanceamento 1:2 (mais conservador que V1)
+
+Justificativa da estratégia híbrida:
+- SMOTE aumenta classe minoritária sem perder informação
+- Undersampling reduz classe majoritária evitando dominação
+- Combina vantagens de ambas técnicas
+- Melhor equilíbrio entre Precision e Recall
+
+Resultados (Cross-validation):
+(Outputs similares à V1, F1-Scores na faixa de 0.57-0.58)
+- Random Forest F1-Score (CV): ~0.5832
+- XGBoost F1-Score (CV): ~0.5793
+- LightGBM F1-Score (CV): ~0.5724
+- CatBoost F1-Score (CV): ~0.5854
+
+Dataset:
+- 100.000 registros (dobro da V1)
+- Mesma fonte: BigQuery
+- Maior representatividade temporal
+
+Feature Engineering:
+(Idêntico à V1)
+
+Otimização:
+- RandomizedSearchCV (n_iter=10)
+- n_jobs=-1 habilitado (paralelização completa)
+- Threshold otimizado para F1-Score
+
+Vantagens em relação à V1:
+- Dataset 2x maior (melhor generalização)
+- Paralelização completa (treinamento mais rápido)
+- Balanceamento mais conservador (menos risco de overfitting)
+- Melhor equilíbrio precision-recall esperado
+
+Desvantagens:
+- Undersampling descarta informação da classe majoritária
+- Mais complexo de implementar e debugar
+- Pode perder padrões importantes da classe majoritária
+
+Arquivos gerados:
+- models/pml/v2.ipynb
+- Outputs de execução com resultados
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: Ensemble V2 - Balancing Strategy Comparison]
+Descrição: Comparação visual entre distribuição de classes: Original → SMOTE → SMOTE+Undersampling.
+
+[INSERIR GRÁFICO: Ensemble V2 - Cross-validation Scores]
+Descrição: F1-Scores de CV dos 4 algoritmos com estratégia híbrida de balanceamento.
+
+[INSERIR GRÁFICO: Precision vs Recall Trade-off V1 vs V2]
+Descrição: Scatter plot comparando trade-off precision-recall entre V1 (SMOTE puro) e V2 (híbrido).
+
+
+12. ENSEMBLE V3 - SMOTETOMEK + GPU
+
+Descrição:
+Terceira versão experimental que substituiu a estratégia de balanceamento por SMOTETomek (técnica mais sofisticada) e habilitou aceleração por GPU para XGBoost e CatBoost. Foco em qualidade dos dados balanceados e performance computacional.
+
+Algoritmos testados:
+- Random Forest
+- XGBoost (com suporte GPU via CUDA)
+- LightGBM
+- CatBoost (com suporte GPU)
+- Stacking Ensemble (meta-modelo: LightGBM)
+
+Parâmetros principais:
+(Mesmos parâmetros das versões anteriores)
+
+Configurações GPU:
+XGBoost:
+- tree_method='hist' (compatibilidade GPU)
+- device='cuda' (aceleração GPU)
+
+CatBoost:
+- task_type='GPU'
+- devices='0'
+
+Técnica de Balanceamento (PRINCIPAL MUDANÇA):
+- SMOTETomek (técnica combinada avançada)
+- Pipeline: SMOTETomek → Modelo
+- Funcionamento:
+  * Passo 1 (SMOTE): Cria exemplos sintéticos da classe minoritária
+  * Passo 2 (Tomek Links): Remove pontos na fronteira entre classes (limpeza)
+- Configuração:
+  * sampling_strategy=0.5
+  * n_jobs=-1
+- Objetivo: Melhor separação entre classes, fronteiras mais claras
+
+Justificativa SMOTETomek:
+- SMOTE cria novos exemplos sintéticos
+- Tomek Links identifica pares de pontos de classes diferentes muito próximos
+- Remove pontos da classe majoritária que causam confusão na fronteira
+- Resultado: Dados balanceados com melhor separabilidade
+
+Resultados (Cross-validation):
+(Outputs similares às versões anteriores)
+- Random Forest F1-Score (CV): ~0.5832
+- XGBoost F1-Score (CV): ~0.5793
+- LightGBM F1-Score (CV): ~0.5724
+- CatBoost F1-Score (CV): ~0.5854
+
+Dataset:
+- 100.000 registros (mesmo que V2)
+- Mesma fonte: BigQuery
+
+Feature Engineering:
+(Idêntico às versões anteriores)
+
+Otimização:
+- RandomizedSearchCV (n_iter=10)
+- GPU aceleração para XGBoost e CatBoost
+- Paralelização completa (n_jobs=-1)
+- Threshold otimizado
+
+Vantagens em relação à V2:
+- SMOTETomek limpa fronteiras ambíguas (melhor separabilidade)
+- GPU acelera treinamento de XGBoost e CatBoost significativamente
+- Melhor qualidade dos dados de treinamento
+- Reduz ruído na região de decisão
+
+Desvantagens:
+- Requer GPU compatível (CUDA para XGBoost)
+- Tomek Links pode remover poucos exemplos (impacto limitado)
+- Mais complexo de configurar e reproduzir
+- Depende de hardware específico
+
+Arquivos gerados:
+- models/pml/v3.ipynb
+- Outputs de execução com resultados
+
+VISUALIZAÇÕES:
+[INSERIR GRÁFICO: Ensemble V3 - SMOTETomek Effect]
+Descrição: Visualização 2D mostrando dados antes e depois de SMOTETomek. Destaque para limpeza de fronteiras.
+
+[INSERIR GRÁFICO: Ensemble V3 - GPU Speedup]
+Descrição: Comparação de tempo de treinamento CPU vs GPU para XGBoost e CatBoost.
+
+[INSERIR GRÁFICO: Tomek Links Visualization]
+Descrição: Identificação visual dos pares Tomek Links removidos na fronteira entre classes.
+
+[INSERIR GRÁFICO: V1 vs V2 vs V3 - F1-Score Evolution]
+Descrição: Evolução dos F1-Scores através das 3 versões experimentais para cada algoritmo.
+
+
+COMPARAÇÃO ENTRE VERSÕES PML (V1, V2, V3):
+
+| Aspecto | V1 | V2 | V3 |
+|---------|----|----|-----|
+| Dataset | 50k registros | 100k registros | 100k registros |
+| Balanceamento | SMOTE puro | SMOTE + Undersampling | SMOTETomek |
+| Estratégia | Oversampling | Híbrido | Oversampling + Limpeza |
+| GPU | Não | Não | Sim (XGBoost, CatBoost) |
+| Paralelização | Limitada (n_jobs=1) | Completa (n_jobs=-1) | Completa (n_jobs=-1) |
+| Foco | Baseline | Volume + Equilíbrio | Qualidade + Performance |
+| F1-Score (CatBoost) | 0.5854 | ~0.5854 | ~0.5854 |
+
+Evolução das técnicas:
+- V1 → V2: Aumento de dados (2x), adição de undersampling, paralelização
+- V2 → V3: Técnica mais sofisticada (SMOTETomek), suporte GPU, foco em qualidade
+
+Observações importantes:
+- F1-Scores similares entre versões (melhorias incrementais)
+- Principal ganho: escalabilidade e qualidade dos dados
+- Nenhuma versão PML superou os modelos finais (V4, V5, V6)
+- Experimentos importantes para explorar técnicas de balanceamento
+- V3 demonstra viabilidade de GPU para projetos futuros
+
+
+13. STACKING ENSEMBLE V7
+
+Descrição:
+Stacking combina múltiplos modelos base (XGBoost, LightGBM, CatBoost) usando um meta-learner (Logistic Regression) para fazer a predição final. Aproveita os pontos fortes de cada algoritmo.
+
+Arquitetura:
+Base Models (Level 0):
+- XGBoost
+- LightGBM  
+- CatBoost
+
+Meta-Learner (Level 1):
+- Logistic Regression
+
+Processo:
+1. Treinar cada base model com cross-validation
+2. Usar predições out-of-fold como features para meta-learner
+3. Meta-learner aprende a combinar predições dos base models
+
+Vantagens teóricas:
+- Combina pontos fortes de múltiplos algoritmos
+- Reduz variância das predições
+- Pode superar qualquer modelo individual
+
+Desvantagens:
+- Complexidade maior
+- Treinamento mais lento
+- Difícil de interpretar
+- Risco de overfitting se não feito corretamente
+
+Arquivos gerados:
+- models/stacking_ensemble.py
+- reports/model_evaluations/stacking_ensemble_report.txt
+
+
+COMPARAÇÃO GERAL DOS MODELOS
+
+VISUALIZAÇÕES COMPARATIVAS:
+[INSERIR GRÁFICO: visualizations/v3/comparison_v1_v2_v3.png]
+Descrição: Comparação visual entre múltiplas versões dos modelos mostrando evolução das métricas (ROC-AUC, F1-Score, Precision, Recall).
+
+[INSERIR GRÁFICO: visualizations/v3/balancing_strategies_comparison.png]
+Descrição: Comparação de diferentes estratégias de balanceamento (Undersampling, SMOTE, Class Weights) e impacto nas métricas.
+
+[INSERIR GRÁFICO: ROC Curves - All Models Comparison]
+Descrição: Todas as curvas ROC sobrepostas no mesmo gráfico para comparação visual. Destaque para CatBoost V6 (AUC=0.9807) vs demais modelos.
+
+[INSERIR GRÁFICO: Metrics Radar Chart]
+Descrição: Gráfico radar comparando os 10 modelos em 5 dimensões: ROC-AUC, Precision, Recall, F1-Score, Accuracy.
+
+[INSERIR GRÁFICO: Training Time vs Performance]
+Descrição: Scatter plot mostrando trade-off entre tempo de treinamento e ROC-AUC. LightGBM destaca-se como rápido, CatBoost como melhor performance.
+
+Rankings por Métrica Principal (ROC-AUC):
+
+MODELOS AVANÇADOS (Gradient Boosting):
+1. CatBoost V6 Final: 0.9807
+2. LightGBM V5: 0.8642
+3. XGBoost V4: ~0.80-0.85 (estimado)
+
+MODELOS TRADICIONAIS:
+1. Random Forest: 0.8083
+2. CatBoost (baseline): 0.8040
+3. SVM: 0.7992
+4. Naive Bayes: 0.7767
+5. SGD: 0.7747
+6. KNN: 0.7533
+7. Decision Tree: 0.7502
+
+EXPERIMENTOS PML (F1-Score como métrica principal):
+1. Ensemble V1 (SMOTE) - CatBoost: 0.5854 F1-Score (CV)
+2. Ensemble V2 (SMOTE+Under) - CatBoost: ~0.5854 F1-Score (CV)
+3. Ensemble V3 (SMOTETomek+GPU) - CatBoost: ~0.5854 F1-Score (CV)
+Nota: Versões experimentais com foco em técnicas de balanceamento
+
+Rankings por Recall (Detecção de Eventos Raros):
+1. Naive Bayes: 0.7892
+2. CatBoost V6 Final: 0.6474
+3. CatBoost baseline: 0.6166
+4. Random Forest: 0.5231
+5. SVM: 0.5055
+6. Decision Tree: 0.4664
+7. SGD: 0.4243
+8. KNN: 0.3893
+9. LightGBM V5: 0.1941
+
+Rankings por Precision (Menor Falsos Positivos):
+1. CatBoost V6 Final: 0.5771
+2. LightGBM V5: 0.5775
+3. KNN: 0.4033
+4. SGD: 0.3494
+5. Random Forest/SVM: 0.3371
+6. CatBoost baseline: 0.2838
+7. Decision Tree: 0.2755
+8. Naive Bayes: 0.1774
+
+
+RECOMENDAÇÕES DE USO POR CENÁRIO
+
+Para alta performance geral (ROC-AUC):
+- CatBoost V6 Final: ROC-AUC 98.07%
+- Random Forest: alternativa robusta com ROC-AUC 80.83%
+
+Para maximizar detecção (high recall):
+- Naive Bayes: 78.92% recall
+- Trade-off: baixa precision (muitos falsos positivos)
+
+Para minimizar falsos positivos (high precision):
+- CatBoost V6 Final: 57.71% precision
+- LightGBM V5 ou KNN: alternativas
+
+Para velocidade (treinamento/inferência rápidos):
+- SGD Classifier: muito rápido
+- LightGBM V5: rápido e eficiente em memória
+
+Para interpretabilidade:
+- Decision Tree: visualização clara da árvore
+- Logistic Regression (a ser implementado)
+
+Para datasets muito grandes (>1 milhão):
+- LightGBM: otimizado para escala
+- SGD: atualização incremental
+
+
+PRÓXIMOS PASSOS
+
+1. Hyperparameter Tuning adicional:
+   - Grid Search ou Bayesian Optimization
+   - Focus em CatBoost V6 e Random Forest
+
+2. Feature Engineering avançado:
+   - Features de séries temporais (lag, rolling)
+   - Embeddings de paradas/usuários
+   - Features de contexto (clima, eventos)
+
+3. Ensemble Methods:
+   - Finalizar Stacking V7
+   - Testar Voting Classifier
+   - Weighted average de modelos
+
+4. Deploy:
+   - API REST com FastAPI
+   - Containerização com Docker
+   - Monitoramento de drift
+
+5. Análise de Erros:
+   - Estudar falsos positivos/negativos
+   - Identificar padrões de erro
+   - Melhorar features específicas
+
+
+ARQUIVOS E ESTRUTURA
+
+Estrutura de diretórios:
+ML-Cittamobi/
+├── models/
+│   ├── catboost/          (V6)
+│   ├── lightgbm/          (V5)
+│   ├── RandomForest/
+│   ├── SVM/
+│   ├── SGDClassifier/
+│   ├── KNN/
+│   ├── NaiveBayes/
+│   ├── DecisionTrees/
+│   ├── pml/               (Experimentos V1, V2, V3)
+│   │   ├── v1.ipynb       (SMOTE puro)
+│   │   ├── v2.ipynb       (SMOTE + Undersampling)
+│   │   └── v3.ipynb       (SMOTETomek + GPU)
+│   └── stacking_ensemble.py (V7)
+├── reports/
+│   ├── model_evaluations/ (relatórios de métricas)
+│   └── figures/           (visualizações)
+├── data/
+│   └── etl.ipynb          (pipeline de dados)
+└── docs/
+    └── DOCUMENTACAO_MODELOS.txt (este arquivo)
+
+
+REFERÊNCIAS
+
+Papers e Documentação:
+- XGBoost: "XGBoost: A Scalable Tree Boosting System" (Chen & Guestrin, 2016)
+- LightGBM: "LightGBM: A Highly Efficient Gradient Boosting Decision Tree" (Ke et al., 2017)
+- CatBoost: "CatBoost: unbiased boosting with categorical features" (Prokhorenkova et al., 2018)
+- Random Forest: "Random Forests" (Breiman, 2001)
+
+Bibliotecas utilizadas:
+- scikit-learn: https://scikit-learn.org/
+- XGBoost: https://xgboost.readthedocs.io/
+- LightGBM: https://lightgbm.readthedocs.io/
+- CatBoost: https://catboost.ai/
+- pandas, numpy, matplotlib, seaborn

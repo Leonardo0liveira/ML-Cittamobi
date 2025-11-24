@@ -311,7 +311,7 @@ Para dúvidas ou sugestões, consulte a documentação em `docs/` ou abra uma is
 
 ## 👨‍💻 Autor
 
-**Stefano**  
+Beatriz Ferreira Babinski, Fernando Laragnoit, Leonardo Moret de Oliveira, Stefano Matarangas
 Projeto Machine Learning - IBMEC  
 Outubro 2025
 

@@ -1,0 +1,249 @@
+DOCUMENTAÇÃO TÉCNICA - PROJETO ML CITTAMOBI
+Predição de Lotação de Ônibus Urbanos
+
+
+1. INTRODUÇÃO
+
+Este documento descreve o processo de preparação de dados e criação de features para o modelo de predição de lotação de ônibus. O objetivo é prever a lotação em paradas específicas usando dados de eventos do aplicativo Cittamobi e informações do sistema de transporte público (GTFS).
+
+
+2. EXTRAÇÃO DOS DADOS
+
+2.1 Fonte de Dados
+
+Os dados foram extraídos do Google BigQuery da tabela proj-ml-469320.app_cittamobi.dataset-updated. Foi realizada uma amostragem de 200.000 registros para viabilizar o processamento.
+
+Código utilizado:
+from google.cloud import bigquery
+project_id = "proj-ml-469320"
+client = bigquery.Client(project=project_id)
+query = "SELECT * FROM proj-ml-469320.app_cittamobi.dataset-updated LIMIT 200000"
+df = client.query(query).to_dataframe()
+
+2.2 Dados do GTFS
+
+Foram utilizados 5 arquivos do GTFS da SPTrans para enriquecer os dados:
+- routes.txt: informações das linhas de ônibus
+- trips.txt: viagens programadas
+- stops.txt: localização das paradas
+- stop_times.txt: horários de passagem
+- frequencies.txt: frequência dos ônibus (headway)
+
+2.3 Campos Principais
+
+event_timestamp: data e hora do evento
+user_pseudo_id: identificador anônimo do usuário
+event_name: tipo de evento (bstop_open)
+device_lat/lon: coordenadas do dispositivo do usuário
+stop_lat/lon: coordenadas da parada
+gtfs_stop_id: identificador da parada no GTFS
+route_short_name: linha de ônibus
+platform: Android ou iOS
+
+
+3. LIMPEZA E PREPARAÇÃO DOS DADOS
+
+3.1 Filtragem de Eventos
+
+Foram filtrados apenas eventos do tipo "bstop_open", que indicam quando o usuário abre a tela de uma parada no aplicativo. Estes eventos representam intenção de uso do transporte público.
+
+3.2 Conversão de Timestamps
+
+Os timestamps foram convertidos para o fuso horário de São Paulo (America/Sao_Paulo) para garantir análises temporais corretas.
+
+3.3 Extração de Coordenadas
+
+As coordenadas estavam no formato POINT(longitude latitude). Foi necessário extrair os valores numéricos usando expressões regulares:
+
+def extract_coords(point_str):
+    match = re.search(r'POINT\s*\(\s*(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s*\)', str(point_str))
+    if match:
+        lon = float(match.group(1))
+        lat = float(match.group(2))
+        return lat, lon
+    return None, None
+
+3.4 Spatial Join com GTFS
+
+Para vincular cada evento à parada GTFS mais próxima, foi utilizado o algoritmo k-d tree da biblioteca scipy. Este algoritmo permite encontrar rapidamente o vizinho mais próximo em dados espaciais.
+
+Processo:
+1. Criar árvore k-d com coordenadas das paradas GTFS
+2. Para cada evento, buscar a parada mais próxima
+3. Atribuir o ID da parada GTFS ao evento
+4. Calcular a distância entre o evento e a parada
+
+
+4. CRIAÇÃO DA VARIÁVEL ALVO
+
+4.1 Definição do Proxy de Lotação
+
+Como não existem dados diretos de lotação dos ônibus, foi criado um proxy baseado no comportamento dos usuários:
+- Contar quantos usuários únicos acessaram cada parada em janelas de 2 minutos
+- Quanto mais usuários consultando uma parada, maior a probabilidade de lotação
+
+4.2 Agregação Temporal
+
+Foi usada uma janela de 2 minutos para agrupar eventos:
+agg_window = '2T'
+df_counts = df_events.groupby(['gtfs_stop_id', pd.Grouper(freq=agg_window)])['user_pseudo_id'].nunique()
+
+4.3 Classificação em Classes
+
+Inicialmente foram criadas 3 classes:
+- Baixa: 0-1 usuários
+- Média: 2 usuários
+- Alta: 3 ou mais usuários
+
+4.4 Conversão para Binária
+
+Devido ao desbalanceamento severo (mais de 90% eram classe Baixa), o problema foi reformulado como classificação binária:
+- Baixa: mantida como classe minoritária (evento raro)
+- Nao_Baixa: união das classes Média e Alta
+
+Distribuição final:
+- Nao_Baixa: aproximadamente 75% (150.000 registros)
+- Baixa: aproximadamente 25% (50.000 registros)
+
+
+5. ENGENHARIA DE FEATURES
+
+5.1 Features Temporais (11 features)
+
+Extraídas do timestamp:
+- time_hour: hora do dia (0-23)
+- time_day_of_week: dia da semana (0-6, sendo 0=segunda)
+- time_day_of_month: dia do mês (1-31)
+- time_month: mês (1-12)
+- is_holiday: se é feriado (0 ou 1)
+- is_weekend: se é fim de semana (0 ou 1)
+- is_peak_hour: se é horário de pico - 6h-9h ou 17h-19h (0 ou 1)
+
+Features cíclicas para capturar periodicidade:
+- hour_sin, hour_cos: codificação cíclica da hora
+- day_sin, day_cos: codificação cíclica do dia da semana
+
+Justificativa: Transporte público tem padrões temporais claros. Horários de pico, fins de semana e feriados apresentam demandas diferentes.
+
+5.2 Features Geoespaciais (5 features)
+
+- device_lat: latitude do dispositivo
+- device_lon: longitude do dispositivo
+- stop_lat: latitude da parada
+- stop_lon: longitude da parada
+- dist_device_stop: distância em metros entre dispositivo e parada
+
+A distância foi calculada usando a biblioteca geopy:
+dist = geodesic((device_lat, device_lon), (stop_lat, stop_lon)).meters
+
+Justificativa: A proximidade do usuário à parada influencia sua probabilidade de uso.
+
+5.3 Features de Serviço GTFS (2 features)
+
+- gtfs_stop_id: identificador único da parada
+- headway_avg_stop_hour: headway médio (intervalo entre ônibus) em segundos para cada parada/hora
+
+O headway foi calculado assim:
+1. Extrair hora inicial de cada frequência do GTFS
+2. Agrupar por parada e hora
+3. Calcular média do headway
+4. Juntar ao dataset principal
+5. Preencher valores ausentes com 3600s (baixa frequência)
+
+Justificativa: Headways menores (maior frequência) tendem a distribuir melhor os passageiros e reduzir lotação.
+
+5.4 Features de Interação (4 features)
+
+Combinações entre features para capturar efeitos conjuntos:
+- headway_x_hour: headway multiplicado pela hora
+- headway_x_weekend: headway multiplicado por fim de semana
+- dist_x_peak: distância multiplicada por horário de pico
+- dist_x_weekend: distância multiplicada por fim de semana
+
+Justificativa: Algumas combinações são mais críticas (exemplo: baixa frequência no horário de pico é pior que em horário normal).
+
+5.5 Features de Agregação por Parada (7 features)
+
+Estatísticas históricas de cada parada:
+- stop_event_rate: taxa histórica de eventos "Baixa" na parada
+- stop_event_count: quantidade total de eventos na parada
+- stop_total_samples: total de amostras da parada
+- stop_dist_mean: distância média dos usuários até a parada
+- stop_dist_std: desvio padrão da distância
+- stop_headway_mean: headway médio da parada
+- stop_headway_std: desvio padrão do headway
+
+Justificativa: Cada parada tem características próprias (terminais vs paradas de bairro) que influenciam a lotação.
+
+
+6. CODIFICAÇÃO DE VARIÁVEIS
+
+6.1 Label Encoding
+
+Variáveis categóricas foram convertidas para números usando LabelEncoder do scikit-learn:
+- gtfs_stop_id
+- route_short_name
+
+6.2 Target Encoding
+
+A variável alvo binária foi mapeada para valores numéricos:
+- Baixa = 1 (classe positiva, evento raro)
+- Nao_Baixa = 0 (classe negativa, evento comum)
+
+
+7. DATASET FINAL
+
+7.1 Exportação
+
+O dataset processado foi salvo em CSV:
+df_final.to_csv('dataset_cittamobi_final.csv', index=False)
+
+7.2 Resumo das Features
+
+Total de 29 features criadas:
+
+Temporais (11): time_hour, time_day_of_week, time_day_of_month, time_month, is_holiday, is_weekend, is_peak_hour, hour_sin, hour_cos, day_sin, day_cos
+
+Geoespaciais (5): device_lat, device_lon, stop_lat, stop_lon, dist_device_stop
+
+Serviço GTFS (2): gtfs_stop_id, headway_avg_stop_hour
+
+Interação (4): headway_x_hour, headway_x_weekend, dist_x_peak, dist_x_weekend
+
+Agregação (7): stop_event_rate, stop_event_count, stop_total_samples, stop_dist_mean, stop_dist_std, stop_headway_mean, stop_headway_std
+
+7.3 Variável Alvo
+
+Nome: target
+Tipo: Binária (0 ou 1)
+Valores:
+- 1 (Baixa): evento raro, baixa lotação (menos de 2 usuários em 2 minutos)
+- 0 (Nao_Baixa): evento comum, lotação normal ou alta (2 ou mais usuários em 2 minutos)
+
+
+8. CONSIDERAÇÕES FINAIS
+
+Este processo de preparação estabeleceu a base para os modelos preditivos de lotação. Principais pontos:
+
+1. Criação de proxy de lotação baseado em contagem de usuários únicos em janelas temporais de 2 minutos
+
+2. Reformulação como problema binário para tratar desbalanceamento e focar em eventos raros
+
+3. Criação de 29 features cobrindo aspectos temporais, geoespaciais, de serviço e históricos
+
+4. Integração com dados GTFS para enriquecer o dataset com informações oficiais de transporte público
+
+Próximos passos:
+- Análise exploratória de dados (EDA)
+- Seleção de features mais importantes
+- Treinamento e otimização de modelos
+- Validação usando métricas apropriadas para dados desbalanceados (AUC-ROC, F1-Score, Precision-Recall)
+
+
+REFERÊNCIAS
+
+Google Cloud BigQuery: https://cloud.google.com/bigquery
+GTFS Specification: https://gtfs.org/
+SPTrans Open Data: http://www.sptrans.com.br/desenvolvedores/
+Geopy Documentation: https://geopy.readthedocs.io/
+Scikit-learn Preprocessing: https://scikit-learn.org/stable/modules/preprocessing.html
